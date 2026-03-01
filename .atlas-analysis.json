@@ -1,0 +1,154 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Zoom Image",
+  "projectDescription": "A framework-agnostic headless library for zooming images on the web with support for hover, move, wheel, and click interactions",
+  "theme": "palm",
+  "primaryColor": "#6366f1",
+  "lightColor": "#818cf8",
+  "darkColor": "#4f46e5",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/zoom-modes",
+              "concepts/headless-architecture",
+              "concepts/state-management"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/vanilla-js",
+              "guides/styling",
+              "guides/configuration",
+              "guides/advanced-usage"
+            ]
+          },
+          {
+            "group": "Framework Adapters",
+            "pages": [
+              "adapters/react",
+              "adapters/vue",
+              "adapters/svelte",
+              "adapters/angular",
+              "adapters/preact",
+              "adapters/solid",
+              "adapters/qwik"
+            ]
+          },
+          {
+            "group": "Examples",
+            "pages": [
+              "examples/overview",
+              "examples/wheel-zoom",
+              "examples/hover-zoom",
+              "examples/move-zoom",
+              "examples/click-zoom"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core API",
+            "pages": [
+              "api/create-zoom-image-wheel",
+              "api/create-zoom-image-hover",
+              "api/create-zoom-image-move",
+              "api/create-zoom-image-click"
+            ]
+          },
+          {
+            "group": "Utilities",
+            "pages": [
+              "api/crop-image",
+              "api/make-calculate-zoom",
+              "api/make-calculate-percentage"
+            ]
+          },
+          {
+            "group": "React Hooks",
+            "pages": [
+              "api/react/use-zoom-image-wheel",
+              "api/react/use-zoom-image-hover",
+              "api/react/use-zoom-image-move",
+              "api/react/use-zoom-image-click"
+            ]
+          },
+          {
+            "group": "Vue Composables",
+            "pages": [
+              "api/vue/use-zoom-image-wheel",
+              "api/vue/use-zoom-image-hover",
+              "api/vue/use-zoom-image-move",
+              "api/vue/use-zoom-image-click"
+            ]
+          },
+          {
+            "group": "Other Adapters",
+            "pages": [
+              "api/svelte-adapter",
+              "api/angular-adapter",
+              "api/preact-adapter",
+              "api/solid-adapter",
+              "api/qwik-adapter"
+            ]
+          },
+          {
+            "group": "Types",
+            "pages": [
+              "api/types/zoom-image-wheel-options",
+              "api/types/zoom-image-hover-options",
+              "api/types/zoom-image-move-options",
+              "api/types/zoom-image-click-options"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Framework-agnostic headless architecture",
+    "Multiple zoom modes: wheel/pinch, hover, move, and click",
+    "Official adapters for React, Vue, Svelte, Angular, Preact, Solid, and Qwik",
+    "TypeScript support with full type definitions",
+    "Small bundle size with tree-shakeable modules",
+    "Touch and mobile-friendly with pinch-to-zoom support"
+  ],
+  "publicApiSurface": [
+    "createZoomImageWheel",
+    "createZoomImageHover",
+    "createZoomImageMove",
+    "createZoomImageClick",
+    "cropImage",
+    "makeCalculateZoom",
+    "makeCalculatePercentage",
+    "useZoomImageWheel (React)",
+    "useZoomImageHover (React)",
+    "useZoomImageMove (React)",
+    "useZoomImageClick (React)",
+    "useZoomImageWheel (Vue)",
+    "useZoomImageHover (Vue)",
+    "useZoomImageMove (Vue)",
+    "useZoomImageClick (Vue)",
+    "useZoomImageWheel (Svelte)",
+    "useZoomImageWheel (Solid)",
+    "useZoomImageWheel (Preact)",
+    "useZoomImageWheel (Qwik)",
+    "ZoomImageWheelService (Angular)"
+  ]
+}
