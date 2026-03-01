@@ -1,0 +1,585 @@
+---
+title: "State Management"
+description: "Understanding how Zoom Image manages state using @namnode/store and how to subscribe to changes"
+---
+
+Zoom Image uses `@namnode/store` - a lightweight, framework-agnostic observable store for managing zoom state. This enables reactive updates across all framework adapters while keeping the core library independent.
+
+## The Store Pattern
+
+Each zoom mode creates its own store instance to manage state:
+
+```typescript
+import { createStore } from "@namnode/store"
+
+// Inside createZoomImageWheel
+const store = createStore<ZoomImageWheelState>({
+  currentZoom: 1,
+  enable: true,
+  currentPositionX: 0,
+  currentPositionY: 0,
+  currentRotation: 0,
+})
+```
+
+The store provides three core methods:
+
+- `getState()` - Get the current state synchronously
+- `setState(newState)` - Update state and notify subscribers
+- `subscribe(callback)` - Listen to state changes
+- `cleanup()` - Remove all subscriptions and cleanup
+
+## State Shapes by Mode
+
+Each zoom mode maintains different state based on its functionality.
+
+### Wheel/Pinch Mode State
+
+The wheel/pinch mode has the most comprehensive state for controlling zoom, pan, and rotation:
+
+```typescript
+type ZoomImageWheelState = {
+  currentRotation: number    // Rotation angle in degrees (0, 90, 180, 270, etc.)
+  currentZoom: number        // Current zoom level (1 = no zoom, 4 = 4x zoom)
+  enable: boolean            // Whether zoom interactions are enabled
+  currentPositionX: number   // X-axis translation in pixels
+  currentPositionY: number   // Y-axis translation in pixels
+}
+```
+
+**Example values:**
+
+```typescript
+// Default state (no zoom)
+{
+  currentRotation: 0,
+  currentZoom: 1,
+  enable: true,
+  currentPositionX: 0,
+  currentPositionY: 0
+}
+
+// Zoomed in 2x, panned right and down
+{
+  currentRotation: 0,
+  currentZoom: 2,
+  enable: true,
+  currentPositionX: -150,
+  currentPositionY: -200
+}
+
+// Rotated 90 degrees, zoomed 3x
+{
+  currentRotation: 90,
+  currentZoom: 3,
+  enable: true,
+  currentPositionX: -100,
+  currentPositionY: -100
+}
+```
+
+### Hover Mode State
+
+Hover mode tracks the loading status and enabled state:
+
+```typescript
+type ZoomImageHoverState = {
+  zoomedImgStatus: ZoomedImgStatus  // Image loading status
+  enabled: boolean                  // Whether hover zoom is active
+}
+
+type ZoomedImgStatus = "idle" | "loading" | "loaded" | "error"
+```
+
+**State transitions:**
+
+```typescript
+// Initial state
+{ zoomedImgStatus: "idle", enabled: true }
+
+// User hovers, starts loading high-res image
+{ zoomedImgStatus: "loading", enabled: true }
+
+// Image loaded successfully
+{ zoomedImgStatus: "loaded", enabled: true }
+
+// Image failed to load
+{ zoomedImgStatus: "error", enabled: true }
+
+// Hover zoom disabled programmatically
+{ zoomedImgStatus: "loaded", enabled: false }
+```
+
+### Move Mode State
+
+Move mode only tracks image loading status:
+
+```typescript
+type ZoomImageMoveState = {
+  zoomedImgStatus: ZoomedImgStatus
+}
+
+type ZoomedImgStatus = "idle" | "loading" | "loaded" | "error"
+```
+
+### Click Mode State
+
+Click mode has the same state shape as move mode:
+
+```typescript
+type ZoomImageClickState = {
+  zoomedImgStatus: ZoomedImgStatus
+}
+
+type ZoomedImgStatus = "idle" | "loading" | "loaded" | "error"
+```
+
+## Reading State
+
+Use `getState()` to read the current state synchronously:
+
+```typescript
+import { createZoomImageWheel } from "@zoom-image/core"
+
+const container = document.getElementById("zoom-container")
+const zoomImage = createZoomImageWheel(container)
+
+// Get current state
+const state = zoomImage.getState()
+console.log("Current zoom level:", state.currentZoom)
+console.log("Is enabled:", state.enable)
+console.log("Position:", state.currentPositionX, state.currentPositionY)
+```
+
+### Reading State in Framework Adapters
+
+Framework adapters typically sync core state with framework reactivity:
+
+```tsx
+import { useZoomImageWheel } from "@zoom-image/react"
+
+function ZoomViewer() {
+  const { createZoomImage, zoomImageState } = useZoomImageWheel()
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (containerRef.current) {
+      createZoomImage(containerRef.current, { maxZoom: 5 })
+    }
+  }, [])
+
+  // zoomImageState is reactive and updates automatically
+  return (
+    <div>
+      <div ref={containerRef}>
+        <img src="/image.jpg" alt="Zoomable" />
+      </div>
+      <div>
+        <p>Zoom: {zoomImageState.currentZoom.toFixed(2)}x</p>
+        <p>Rotation: {zoomImageState.currentRotation}°</p>
+        <p>Enabled: {zoomImageState.enable ? "Yes" : "No"}</p>
+      </div>
+    </div>
+  )
+}
+```
+
+## Subscribing to State Changes
+
+Use `subscribe()` to listen for state changes and react to them:
+
+```typescript
+const zoomImage = createZoomImageWheel(container)
+
+const unsubscribe = zoomImage.subscribe(({ state, prevState }) => {
+  console.log("State changed")
+  console.log("Previous:", prevState)
+  console.log("Current:", state)
+  
+  // React to specific changes
+  if (state.currentZoom !== prevState.currentZoom) {
+    console.log(`Zoom changed from ${prevState.currentZoom} to ${state.currentZoom}`)
+  }
+  
+  if (state.currentRotation !== prevState.currentRotation) {
+    console.log(`Rotated from ${prevState.currentRotation}° to ${state.currentRotation}°`)
+  }
+})
+
+// Later: unsubscribe when no longer needed
+unsubscribe()
+```
+
+### Subscription Callback Signature
+
+The subscription callback receives an object with current and previous state:
+
+```typescript
+type SubscriptionCallback<T> = (payload: {
+  state: T        // Current state after update
+  prevState: T    // State before update
+}) => void
+```
+
+### Multiple Subscribers
+
+You can have multiple subscribers on the same zoom instance:
+
+```typescript
+const zoomImage = createZoomImageWheel(container)
+
+// Subscriber 1: Update UI
+const unsubscribe1 = zoomImage.subscribe(({ state }) => {
+  document.getElementById("zoom-level").textContent = `${state.currentZoom}x`
+})
+
+// Subscriber 2: Log analytics
+const unsubscribe2 = zoomImage.subscribe(({ state, prevState }) => {
+  if (state.currentZoom > prevState.currentZoom) {
+    analytics.track("zoom_in", { level: state.currentZoom })
+  }
+})
+
+// Subscriber 3: Enable/disable controls
+const unsubscribe3 = zoomImage.subscribe(({ state }) => {
+  const resetButton = document.getElementById("reset-zoom")
+  resetButton.disabled = state.currentZoom === 1
+})
+
+// Cleanup all
+unsubscribe1()
+unsubscribe2()
+unsubscribe3()
+```
+
+### Subscription Lifecycle
+
+Subscriptions remain active until explicitly unsubscribed or the instance is cleaned up:
+
+```typescript
+const zoomImage = createZoomImageWheel(container)
+
+const unsubscribe = zoomImage.subscribe(({ state }) => {
+  console.log("Zoom:", state.currentZoom)
+})
+
+// Option 1: Unsubscribe manually
+unsubscribe()
+
+// Option 2: Cleanup removes all subscriptions
+zoomImage.cleanup()  // Also unsubscribes all
+```
+
+## Updating State
+
+Some zoom modes support programmatic state updates via `setState()`.
+
+### Wheel/Pinch Mode Updates
+
+Wheel mode supports updating zoom, rotation, and enable state:
+
+```typescript
+const zoomImage = createZoomImageWheel(container, { maxZoom: 5 })
+
+// Zoom to 2x
+zoomImage.setState({ currentZoom: 2 })
+
+// Rotate 90 degrees
+zoomImage.setState({ currentRotation: 90 })
+
+// Disable zoom interactions
+zoomImage.setState({ enable: false })
+
+// Update multiple properties
+zoomImage.setState({
+  currentZoom: 3,
+  currentRotation: 180,
+  enable: true
+})
+
+// Change zoom target element
+const newTarget = document.getElementById("new-target")
+zoomImage.setState({ zoomTarget: newTarget })
+```
+
+**Available updates:**
+
+```typescript
+type ZoomImageWheelStateUpdate = Partial<{
+  enable: boolean                  // Toggle zoom on/off
+  currentZoom: number              // Set zoom level (clamped to 1-maxZoom)
+  currentRotation: number          // Set rotation angle
+  zoomTarget: HTMLElement | null   // Change the element being transformed
+}>
+```
+
+### Hover Mode Updates
+
+Hover mode only supports enabling/disabling:
+
+```typescript
+const zoomImage = createZoomImageHover(container, options)
+
+// Disable hover zoom
+zoomImage.setState({ enabled: false })
+
+// Re-enable hover zoom
+zoomImage.setState({ enabled: true })
+```
+
+### Move and Click Modes
+
+Move and click modes don't expose `setState()` - they are controlled entirely by user interaction.
+
+### State Update Constraints
+
+The zoom implementations enforce constraints on state updates:
+
+```typescript
+// Zoom is clamped between 1 and maxZoom
+const zoomImage = createZoomImageWheel(container, { maxZoom: 4 })
+
+zoomImage.setState({ currentZoom: 10 })  // Actually sets to 4 (maxZoom)
+zoomImage.setState({ currentZoom: 0.5 }) // Actually sets to 1 (minimum)
+console.log(zoomImage.getState().currentZoom) // 1
+
+// Position is constrained to keep image within bounds
+zoomImage.setState({ currentZoom: 2 })
+// currentPositionX and currentPositionY are automatically adjusted
+```
+
+## Image Loading States
+
+Modes that support separate zoom image sources track loading status:
+
+```typescript
+const zoomImage = createZoomImageHover(container, {
+  customZoom: { width: 400, height: 400 },
+  zoomTarget: document.getElementById("zoom-target"),
+  zoomImageSource: "/images/high-res.jpg"  // Separate high-res image
+})
+
+zoomImage.subscribe(({ state }) => {
+  switch (state.zoomedImgStatus) {
+    case "idle":
+      console.log("No zoom image loaded yet")
+      break
+    case "loading":
+      console.log("Loading high-res image...")
+      // Show loading spinner
+      break
+    case "loaded":
+      console.log("High-res image ready")
+      // Hide loading spinner
+      break
+    case "error":
+      console.log("Failed to load high-res image")
+      // Show error message
+      break
+  }
+})
+```
+
+### Loading State Timing
+
+The image loader waits 50ms before transitioning to "loading" state to avoid flash of loading state for cached images:
+
+```typescript
+// From imageLoader.ts implementation
+const THRESHOLD = 50  // milliseconds
+
+function createZoomImage(img, src, store) {
+  if (img.src === src) return  // Already loaded
+  
+  img.src = src
+  let complete = false
+
+  img.onload = () => {
+    complete = true
+    store.setState({ zoomedImgStatus: "loaded" })
+  }
+
+  img.onerror = () => {
+    complete = true
+    store.setState({ zoomedImgStatus: "error" })
+  }
+
+  // Only show loading state if image takes >50ms
+  setTimeout(() => {
+    if (!complete) {
+      store.setState({ zoomedImgStatus: "loading" })
+    }
+  }, THRESHOLD)
+}
+```
+
+## Batch Updates
+
+The store supports batching multiple state updates to trigger only one subscriber notification:
+
+```typescript
+// Inside createZoomImageWheel setState implementation
+store.batch(() => {
+  const currentState = store.getState()
+  
+  if (typeof newState.enable === "boolean") {
+    store.setState({ enable: newState.enable })
+  }
+  
+  if (typeof newState.currentRotation === "number") {
+    store.setState({ currentRotation: newState.currentRotation })
+  }
+  
+  if (typeof newState.currentZoom === "number") {
+    const newZoom = clamp(newState.currentZoom, 1, maxZoom)
+    updateStateOnNewZoom(newZoom)
+  }
+})
+// Only ONE subscriber notification fired for all updates above
+```
+
+This improves performance by avoiding redundant renders/re-renders.
+
+## Practical Examples
+
+### Example 1: Zoom Level Indicator
+
+```typescript
+const container = document.getElementById("image-container")
+const indicator = document.getElementById("zoom-indicator")
+
+const zoomImage = createZoomImageWheel(container)
+
+zoomImage.subscribe(({ state }) => {
+  indicator.textContent = `${Math.round(state.currentZoom * 100)}%`
+  
+  // Change color based on zoom level
+  if (state.currentZoom >= 3) {
+    indicator.style.color = "red"
+  } else if (state.currentZoom >= 2) {
+    indicator.style.color = "orange"
+  } else {
+    indicator.style.color = "green"
+  }
+})
+```
+
+### Example 2: Reset Button
+
+```typescript
+const resetButton = document.getElementById("reset-zoom")
+const zoomImage = createZoomImageWheel(container, { maxZoom: 5 })
+
+// Disable button when already at default state
+zoomImage.subscribe(({ state }) => {
+  const isDefault = 
+    state.currentZoom === 1 && 
+    state.currentRotation === 0 &&
+    state.currentPositionX === 0 &&
+    state.currentPositionY === 0
+  
+  resetButton.disabled = isDefault
+})
+
+// Reset to default state on click
+resetButton.addEventListener("click", () => {
+  zoomImage.setState({
+    currentZoom: 1,
+    currentRotation: 0
+  })
+})
+```
+
+### Example 3: Zoom Controls
+
+```typescript
+const zoomInBtn = document.getElementById("zoom-in")
+const zoomOutBtn = document.getElementById("zoom-out")
+const rotateBtn = document.getElementById("rotate")
+
+const zoomImage = createZoomImageWheel(container, { maxZoom: 4 })
+
+zoomInBtn.addEventListener("click", () => {
+  const current = zoomImage.getState().currentZoom
+  zoomImage.setState({ currentZoom: current + 0.5 })
+})
+
+zoomOutBtn.addEventListener("click", () => {
+  const current = zoomImage.getState().currentZoom
+  zoomImage.setState({ currentZoom: current - 0.5 })
+})
+
+rotateBtn.addEventListener("click", () => {
+  const current = zoomImage.getState().currentRotation
+  zoomImage.setState({ currentRotation: current + 90 })
+})
+
+// Update button states
+zoomImage.subscribe(({ state }) => {
+  zoomInBtn.disabled = state.currentZoom >= 4
+  zoomOutBtn.disabled = state.currentZoom <= 1
+})
+```
+
+### Example 4: Loading State UI
+
+```typescript
+const loadingSpinner = document.getElementById("loading-spinner")
+const errorMessage = document.getElementById("error-message")
+
+const zoomImage = createZoomImageMove(container, {
+  zoomImageSource: "/images/very-high-res.jpg"
+})
+
+zoomImage.subscribe(({ state }) => {
+  loadingSpinner.style.display = 
+    state.zoomedImgStatus === "loading" ? "block" : "none"
+  
+  errorMessage.style.display = 
+    state.zoomedImgStatus === "error" ? "block" : "none"
+})
+```
+
+### Example 5: Analytics Tracking
+
+```typescript
+const zoomImage = createZoomImageWheel(container)
+
+let sessionMaxZoom = 1
+
+zoomImage.subscribe(({ state, prevState }) => {
+  // Track zoom level changes
+  if (state.currentZoom !== prevState.currentZoom) {
+    analytics.track("zoom_changed", {
+      from: prevState.currentZoom,
+      to: state.currentZoom,
+      direction: state.currentZoom > prevState.currentZoom ? "in" : "out"
+    })
+    
+    // Track max zoom achieved
+    if (state.currentZoom > sessionMaxZoom) {
+      sessionMaxZoom = state.currentZoom
+      analytics.track("new_max_zoom", { level: sessionMaxZoom })
+    }
+  }
+  
+  // Track rotation usage
+  if (state.currentRotation !== prevState.currentRotation) {
+    analytics.track("image_rotated", {
+      angle: state.currentRotation
+    })
+  }
+})
+```
+
+<Note>
+The store pattern enables reactive UI updates without coupling the core library to any specific framework's reactivity system.
+</Note>
+
+<Tip>
+Always unsubscribe from state changes when your component unmounts, or use the `cleanup()` method which handles this automatically.
+</Tip>
+
+<Warning>
+Don't mutate the state object directly. Always use `setState()` to ensure subscribers are notified and constraints are enforced.
+</Warning>

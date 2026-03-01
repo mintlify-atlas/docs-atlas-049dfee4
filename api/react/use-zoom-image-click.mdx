@@ -1,0 +1,193 @@
+---
+title: "useZoomImageClick"
+description: "React hook for click-to-zoom functionality with mouse tracking on images"
+---
+
+## Hook Signature
+
+```typescript
+function useZoomImageClick(): {
+  createZoomImage: (
+    container: HTMLElement,
+    options?: ZoomImageClickOptions
+  ) => void
+  zoomImageState: ZoomImageClickState
+}
+```
+
+## Return Value
+
+The hook returns an object with the following properties:
+
+<ResponseField name="createZoomImage" type="function" required>
+  Function to initialize click-based zoom on a container element. Users click once to zoom in and can move their mouse to pan, then click again to zoom out.
+  
+  <ParamField body="container" type="HTMLElement" required>
+    The container element that wraps the image element
+  </ParamField>
+  
+  <ParamField body="options" type="ZoomImageClickOptions">
+    Configuration options for the zoom behavior
+  </ParamField>
+</ResponseField>
+
+<ResponseField name="zoomImageState" type="ZoomImageClickState" required>
+  Reactive state object that tracks the zoomed image status
+  
+  <ParamField body="zoomedImgStatus" type="'idle' | 'loading' | 'loaded' | 'error'">
+    Loading status of the zoomed image
+  </ParamField>
+</ResponseField>
+
+## Options
+
+<ParamField path="zoomFactor" type="number" default="4">
+  Magnification factor for the zoomed image. A value of 4 means the image displays at 400% size.
+</ParamField>
+
+<ParamField path="zoomImageSource" type="string">
+  URL of the high-resolution image to display when zoomed. Defaults to the source image's `src`.
+</ParamField>
+
+<ParamField path="disableScrollLock" type="boolean" default="false">
+  If `true`, allows page scrolling while interacting with the zoomed image
+</ParamField>
+
+<ParamField path="zoomImageProps" type="object">
+  Additional props for the zoomed image element
+  
+  <ParamField path="zoomImageProps.alt" type="string">
+    Alt text for the zoomed image
+  </ParamField>
+</ParamField>
+
+## Example
+
+```tsx
+import { useZoomImageClick } from '@zoom-image/react'
+import { useEffect, useRef } from 'react'
+
+function ClickZoomImage() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { createZoomImage, zoomImageState } = useZoomImageClick()
+
+  useEffect(() => {
+    if (containerRef.current) {
+      createZoomImage(containerRef.current, {
+        zoomImageSource: '/large-image.jpg',
+        zoomFactor: 3,
+      })
+    }
+  }, [])
+
+  return (
+    <div>
+      <p>Click inside the image to zoom in, click again to zoom out</p>
+      
+      {zoomImageState.zoomedImgStatus === 'loading' && (
+        <p>Loading zoom image...</p>
+      )}
+      
+      <div 
+        ref={containerRef} 
+        className="relative h-[300px] w-[200px] cursor-pointer overflow-hidden"
+      >
+        <img 
+          className="h-full w-full" 
+          alt="Click to zoom" 
+          src="/thumbnail.jpg" 
+        />
+      </div>
+    </div>
+  )
+}
+```
+
+## User Interaction Flow
+
+1. **First click**: Activates zoom mode and displays the zoomed image at the clicked position
+2. **Move mouse**: While zoomed, moving the mouse pans the zoomed image
+3. **Second click**: Deactivates zoom and returns to normal view
+
+## With Scroll Lock Disabled
+
+By default, page scrolling is disabled when hovering over the zoom area. You can allow scrolling:
+
+```tsx
+useEffect(() => {
+  if (containerRef.current) {
+    createZoomImage(containerRef.current, {
+      zoomImageSource: '/large-image.jpg',
+      disableScrollLock: true,
+    })
+  }
+}, [])
+```
+
+## Status Indicators
+
+You can display loading states based on the `zoomedImgStatus`:
+
+```tsx
+function ClickZoomImage() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { createZoomImage, zoomImageState } = useZoomImageClick()
+
+  useEffect(() => {
+    if (containerRef.current) {
+      createZoomImage(containerRef.current, {
+        zoomImageSource: '/large-image.jpg',
+      })
+    }
+  }, [])
+
+  return (
+    <div>
+      <div className="relative" ref={containerRef}>
+        <img src="/thumbnail.jpg" alt="Click to zoom" />
+        
+        {zoomImageState.zoomedImgStatus === 'loading' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+            <span className="text-white">Loading...</span>
+          </div>
+        )}
+        
+        {zoomImageState.zoomedImgStatus === 'error' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-red-500/50">
+            <span className="text-white">Failed to load zoom image</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+## Container Requirements
+
+For optimal zoom behavior, the container should have:
+
+- Fixed dimensions (`height` and `width`)
+- `overflow: hidden` to contain the zoomed image
+- `position: relative` for proper image positioning
+- An appropriate cursor style (e.g., `cursor: pointer` or `cursor: zoom-in`)
+
+```css
+.click-zoom-container {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  height: 400px;
+  width: 300px;
+}
+```
+
+## Cleanup
+
+The hook automatically handles cleanup of event listeners, DOM elements, and state subscriptions when the component unmounts. No manual cleanup is required.
+
+## See Also
+
+- [createZoomImageClick](/api/create-zoom-image-click) - Core API documentation
+- [useZoomImageMove](/api/react/use-zoom-image-move) - Move-based zoom hook
+- [useZoomImageWheel](/api/react/use-zoom-image-wheel) - Wheel-based zoom hook

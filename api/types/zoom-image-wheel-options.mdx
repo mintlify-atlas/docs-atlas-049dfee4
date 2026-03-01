@@ -1,0 +1,159 @@
+---
+title: 'ZoomImageWheelOptions'
+description: 'Configuration options for the createZoomImageWheel function'
+---
+
+The `ZoomImageWheelOptions` type defines the configuration options for creating a wheel-based zoom interface that supports mouse wheel zooming, pinch-to-zoom gestures, and touch interactions.
+
+## Type Definition
+
+```typescript
+type ZoomImageWheelOptions = {
+  maxZoom?: number
+  wheelZoomRatio?: number
+  dblTapAnimationDuration?: number
+  initialState?: Partial<ZoomImageWheelStateUpdate>
+  shouldZoomOnSingleTouch?: () => boolean
+  zoomTarget?: HTMLElement | null
+}
+```
+
+## Properties
+
+<ParamField path="maxZoom" type="number" default="4">
+  The maximum zoom level allowed. The zoom scale is clamped between 1 (original size) and this value.
+  
+  **Example:**
+  ```typescript
+  maxZoom: 6 // Allow zooming up to 6x the original size
+  ```
+</ParamField>
+
+<ParamField path="wheelZoomRatio" type="number" default="0.1">
+  Controls the sensitivity of wheel-based zooming. Higher values result in faster zoom on each wheel event.
+  
+  **Example:**
+  ```typescript
+  wheelZoomRatio: 0.2 // Faster zoom speed
+  ```
+</ParamField>
+
+<ParamField path="dblTapAnimationDuration" type="number" default="300">
+  Duration in milliseconds for the double-tap zoom animation. Controls how quickly the image animates between zoomed and unzoomed states.
+  
+  **Example:**
+  ```typescript
+  dblTapAnimationDuration: 500 // Slower, smoother animation
+  ```
+</ParamField>
+
+<ParamField path="initialState" type="Partial<ZoomImageWheelStateUpdate>">
+  Initial state for the zoom component. Allows you to set the starting zoom level, rotation, or enable/disable state.
+  
+  **Properties:**
+  - `enable?: boolean` - Whether zoom is initially enabled (default: `true`)
+  - `currentZoom?: number` - Initial zoom level (default: `1`)
+  - `currentRotation?: number` - Initial rotation in degrees (default: `0`)
+  - `zoomTarget?: HTMLElement | null` - Target element to apply zoom transform
+  
+  **Example:**
+  ```typescript
+  initialState: {
+    currentZoom: 2,
+    currentRotation: 90,
+    enable: true
+  }
+  ```
+</ParamField>
+
+<ParamField path="shouldZoomOnSingleTouch" type="() => boolean" default="() => true">
+  Callback function that determines whether single-touch gestures should trigger zoom behavior. Useful for conditionally enabling/disabling touch zoom.
+  
+  **Example:**
+  ```typescript
+  shouldZoomOnSingleTouch: () => {
+    // Only allow zoom on touch devices in landscape mode
+    return window.innerWidth > window.innerHeight
+  }
+  ```
+</ParamField>
+
+<ParamField path="zoomTarget" type="HTMLElement | null">
+  The HTML element to apply zoom transformations to. If not provided, defaults to the first `<img>` element within the container.
+  
+  **Example:**
+  ```typescript
+  const customTarget = document.querySelector('.zoom-image')
+  zoomTarget: customTarget
+  ```
+</ParamField>
+
+## Related Types
+
+### ZoomImageWheelState
+
+The internal state managed by the zoom component:
+
+```typescript
+type ZoomImageWheelState = {
+  currentRotation: number    // Current rotation angle in degrees
+  currentZoom: number        // Current zoom level (1 = original size)
+  enable: boolean            // Whether zoom interactions are enabled
+  currentPositionX: number   // X-axis position offset in pixels
+  currentPositionY: number   // Y-axis position offset in pixels
+}
+```
+
+### ZoomImageWheelStateUpdate
+
+Partial state updates that can be applied:
+
+```typescript
+type ZoomImageWheelStateUpdate = Partial<{
+  enable: boolean
+  currentZoom: number
+  currentRotation: number
+  zoomTarget: HTMLElement | null
+}>
+```
+
+## Usage Example
+
+```typescript
+import { createZoomImageWheel } from '@zoom-image/core'
+
+const container = document.querySelector('.image-container')
+
+const zoomInstance = createZoomImageWheel(container, {
+  maxZoom: 5,
+  wheelZoomRatio: 0.15,
+  dblTapAnimationDuration: 400,
+  initialState: {
+    enable: true,
+    currentZoom: 1
+  },
+  shouldZoomOnSingleTouch: () => true
+})
+
+// Subscribe to state changes
+zoomInstance.subscribe((state) => {
+  console.log('Current zoom:', state.currentZoom)
+  console.log('Position:', state.currentPositionX, state.currentPositionY)
+})
+
+// Update state programmatically
+zoomInstance.setState({
+  currentZoom: 3,
+  currentRotation: 90
+})
+
+// Clean up when done
+zoomInstance.cleanup()
+```
+
+## See Also
+
+- [createZoomImageWheel](/api/create-zoom-image-wheel) - Function that uses these options
+- [ZoomImageHoverOptions](/api/types/zoom-image-hover-options) - Options for hover-based zoom
+- [ZoomImageMoveOptions](/api/types/zoom-image-move-options) - Options for move-based zoom
+- [ZoomImageClickOptions](/api/types/zoom-image-click-options) - Options for click-based zoom

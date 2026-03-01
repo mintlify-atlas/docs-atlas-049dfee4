@@ -1,0 +1,203 @@
+---
+title: "createZoomImageWheel"
+description: "Create an interactive zoom experience with mouse wheel and touch gestures, including pinch-to-zoom and double-tap functionality"
+---
+
+## Overview
+
+`createZoomImageWheel` enables zooming on images using mouse wheel scrolling, trackpad pinch gestures, and touch interactions. It supports pan & zoom, rotation, double-tap to zoom, and multi-touch gestures.
+
+## Function Signature
+
+```typescript
+function createZoomImageWheel(
+  container: HTMLElement,
+  options?: ZoomImageWheelOptions
+): {
+  cleanup: () => void
+  subscribe: (listener: Listener) => () => void
+  setState: (value: ZoomImageWheelStateUpdate) => void
+  getState: () => ZoomImageWheelState
+}
+```
+
+## Parameters
+
+<ParamField path="container" type="HTMLElement" required>
+  The HTML element that contains the image to be zoomed. The function will automatically find the first `<img>` element inside this container as the zoom target.
+</ParamField>
+
+<ParamField path="options" type="ZoomImageWheelOptions">
+  Configuration options for the zoom behavior.
+
+  <ParamField path="options.maxZoom" type="number" default="4">
+    Maximum zoom scale allowed. The image cannot be zoomed beyond this value.
+  </ParamField>
+
+  <ParamField path="options.wheelZoomRatio" type="number" default="0.1">
+    Zoom increment ratio per wheel scroll event. Higher values result in faster zooming.
+  </ParamField>
+
+  <ParamField path="options.dblTapAnimationDuration" type="number" default="300">
+    Animation duration in milliseconds for the double-tap zoom transition.
+  </ParamField>
+
+  <ParamField path="options.initialState" type="Partial<ZoomImageWheelStateUpdate>">
+    Partial or full initial state. Useful for restoring a previous zoom state when re-initializing.
+  </ParamField>
+
+  <ParamField path="options.shouldZoomOnSingleTouch" type="() => boolean" default="() => true">
+    Predicate function to determine if zoom should be triggered on single touch actions. Return `false` to disable single-touch zoom and pan.
+  </ParamField>
+
+  <ParamField path="options.zoomTarget" type="HTMLElement | null" default="container.querySelector('img')">
+    The element to apply zoom transformations to. Defaults to the first image element inside the container.
+  </ParamField>
+</ParamField>
+
+## Return Value
+
+Returns an object with the following methods:
+
+<ResponseField name="cleanup" type="() => void">
+  Removes all event listeners and cleans up the zoom instance. Call this when the component unmounts or when zoom functionality is no longer needed.
+</ResponseField>
+
+<ResponseField name="subscribe" type="(listener: Listener) => () => void">
+  Subscribe to state changes. The listener function is called whenever the zoom state changes. Returns an unsubscribe function.
+
+  ```typescript
+  type Listener = (state: ZoomImageWheelState) => void
+  ```
+</ResponseField>
+
+<ResponseField name="setState" type="(value: ZoomImageWheelStateUpdate) => void">
+  Programmatically update the zoom state. Use this to enable/disable zoom, change zoom level, or rotate the image.
+</ResponseField>
+
+<ResponseField name="getState" type="() => ZoomImageWheelState">
+  Get the current zoom state including zoom level, position, rotation, and enabled status.
+</ResponseField>
+
+## State Types
+
+### ZoomImageWheelState
+
+```typescript
+type ZoomImageWheelState = {
+  currentZoom: number          // Current zoom level (1 = original size)
+  enable: boolean              // Whether zoom is currently enabled
+  currentPositionX: number     // X-axis translation in pixels
+  currentPositionY: number     // Y-axis translation in pixels
+  currentRotation: number      // Rotation in degrees (0, 90, 180, or 270)
+}
+```
+
+### ZoomImageWheelStateUpdate
+
+```typescript
+type ZoomImageWheelStateUpdate = Partial<{
+  enable: boolean              // Enable or disable zoom functionality
+  currentZoom: number          // Set zoom level programmatically
+  currentRotation: number      // Set rotation in degrees
+  zoomTarget: HTMLElement | null  // Change the zoom target element
+}>
+```
+
+## Usage Examples
+
+### Basic Usage
+
+```typescript
+import { createZoomImageWheel } from '@zoom-image/core'
+
+const container = document.getElementById('zoom-container')
+const { cleanup } = createZoomImageWheel(container)
+
+// Call cleanup when done
+cleanup()
+```
+
+### With Custom Options
+
+```typescript
+const { cleanup, getState, setState } = createZoomImageWheel(container, {
+  maxZoom: 6,
+  wheelZoomRatio: 0.15,
+  dblTapAnimationDuration: 400,
+  initialState: {
+    currentZoom: 1.5,
+    currentRotation: 0
+  }
+})
+```
+
+### Subscribe to State Changes
+
+```typescript
+const { cleanup, subscribe } = createZoomImageWheel(container)
+
+const unsubscribe = subscribe((state) => {
+  console.log('Zoom level:', state.currentZoom)
+  console.log('Position:', state.currentPositionX, state.currentPositionY)
+  console.log('Rotation:', state.currentRotation)
+})
+
+// Unsubscribe when done
+unsubscribe()
+cleanup()
+```
+
+### Programmatic Control
+
+```typescript
+const { setState, getState } = createZoomImageWheel(container)
+
+// Zoom to 2x
+setState({ currentZoom: 2 })
+
+// Rotate 90 degrees
+setState({ currentRotation: 90 })
+
+// Disable zoom temporarily
+setState({ enable: false })
+
+// Re-enable zoom
+setState({ enable: true })
+
+// Check current state
+const state = getState()
+console.log(state.currentZoom)
+```
+
+### Restore Previous State
+
+```typescript
+// Save state before cleanup
+const previousState = instance.getState()
+localStorage.setItem('zoomState', JSON.stringify(previousState))
+
+// Later, restore the state
+const savedState = JSON.parse(localStorage.getItem('zoomState'))
+const instance = createZoomImageWheel(container, {
+  initialState: savedState
+})
+```
+
+## Features
+
+- **Mouse wheel zoom**: Scroll to zoom in/out at cursor position
+- **Pinch-to-zoom**: Two-finger pinch gesture support on touch devices
+- **Double-tap zoom**: Double-tap to zoom in/out with smooth animation
+- **Pan when zoomed**: Click and drag to pan when image is zoomed
+- **Image rotation**: Supports 0°, 90°, 180°, and 270° rotation
+- **Zoom limits**: Automatically constrains pan to image boundaries
+- **Scroll lock**: Disables page scrolling during zoom interactions
+
+## Related Types
+
+- [ZoomImageWheelOptions](/api/types/zoom-image-wheel-options) - Options type for wheel zoom
+
+## Source Reference
+
+Implementation: `/packages/core/src/createZoomImageWheel.ts:45`

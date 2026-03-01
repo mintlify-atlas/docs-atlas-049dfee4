@@ -1,0 +1,276 @@
+---
+title: "createZoomImageClick"
+description: "Create a click-to-zoom effect where clicking toggles a magnified view that follows pointer movement"
+---
+
+## Overview
+
+`createZoomImageClick` creates a click-activated zoom effect. Users click once to activate zoom mode, move the pointer to pan around the magnified image, and click again to deactivate. The zoomed image is rendered as an overlay on the original image.
+
+## Function Signature
+
+```typescript
+function createZoomImageClick(
+  container: HTMLElement,
+  options?: ZoomImageClickOptions
+): {
+  cleanup: () => void
+  subscribe: (listener: Listener) => () => void
+  getState: () => ZoomImageClickState
+}
+```
+
+## Parameters
+
+<ParamField path="container" type="HTMLElement" required>
+  The HTML element that contains the image to be zoomed. The function will automatically find the first `<img>` element inside this container.
+</ParamField>
+
+<ParamField path="options" type="ZoomImageClickOptions">
+  Configuration options for the click zoom behavior.
+
+  <ParamField path="options.zoomFactor" type="number" default="4">
+    The magnification factor for the zoomed image. A value of 4 means the image will be displayed at 4x its original size.
+  </ParamField>
+
+  <ParamField path="options.zoomImageSource" type="string">
+    The URL of a higher-resolution image to display in the zoom view. Defaults to the source image's `src` attribute.
+  </ParamField>
+
+  <ParamField path="options.disableScrollLock" type="boolean" default="false">
+    If `true`, page scrolling will not be locked when zoom is active. By default, scrolling is disabled during zoom to prevent accidental page navigation.
+  </ParamField>
+
+  <ParamField path="options.zoomImageProps" type="object">
+    Additional properties for the zoomed image element.
+
+    <ParamField path="options.zoomImageProps.alt" type="string">
+      Alt text for the zoomed image element.
+    </ParamField>
+  </ParamField>
+</ParamField>
+
+## Return Value
+
+Returns an object with the following methods:
+
+<ResponseField name="cleanup" type="() => void">
+  Removes all event listeners and the zoomed image element. Call this when the component unmounts or when zoom functionality is no longer needed.
+</ResponseField>
+
+<ResponseField name="subscribe" type="(listener: Listener) => () => void">
+  Subscribe to state changes. The listener is called when the zoomed image loading status changes. Returns an unsubscribe function.
+
+  ```typescript
+  type Listener = (state: ZoomImageClickState, prevState: ZoomImageClickState) => void
+  ```
+</ResponseField>
+
+<ResponseField name="getState" type="() => ZoomImageClickState">
+  Get the current state including the zoomed image loading status.
+</ResponseField>
+
+## State Types
+
+### ZoomImageClickState
+
+```typescript
+type ZoomImageClickState = {
+  zoomedImgStatus: ZoomedImgStatus  // "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### ZoomedImgStatus
+
+```typescript
+type ZoomedImgStatus = "idle" | "loading" | "loaded" | "error"
+```
+
+## Usage Examples
+
+### Basic Usage
+
+```typescript
+import { createZoomImageClick } from '@zoom-image/core'
+
+const container = document.getElementById('image-container')
+const { cleanup } = createZoomImageClick(container)
+
+// Call cleanup when done
+cleanup()
+```
+
+### With Custom Options
+
+```typescript
+const { cleanup } = createZoomImageClick(container, {
+  zoomFactor: 3,
+  zoomImageSource: '/images/product-large.jpg'
+})
+```
+
+### With High-Resolution Image
+
+```typescript
+const { cleanup } = createZoomImageClick(container, {
+  zoomFactor: 5,
+  zoomImageSource: '/images/high-resolution.jpg',
+  disableScrollLock: false,
+  zoomImageProps: {
+    alt: 'Zoomed product view'
+  }
+})
+```
+
+### Subscribe to Loading State
+
+```typescript
+const { cleanup, subscribe, getState } = createZoomImageClick(container, {
+  zoomImageSource: '/images/large.jpg'
+})
+
+const unsubscribe = subscribe((state, prevState) => {
+  if (state.zoomedImgStatus !== prevState.zoomedImgStatus) {
+    console.log('Status changed:', prevState.zoomedImgStatus, '->', state.zoomedImgStatus)
+  }
+
+  switch (state.zoomedImgStatus) {
+    case 'idle':
+      console.log('Zoom not activated')
+      break
+    case 'loading':
+      console.log('Loading high-res image...')
+      break
+    case 'loaded':
+      console.log('Image ready for zooming')
+      break
+    case 'error':
+      console.error('Failed to load zoom image')
+      break
+  }
+})
+
+// Check current state
+const state = getState()
+console.log('Current status:', state.zoomedImgStatus)
+
+// Cleanup
+unsubscribe()
+cleanup()
+```
+
+### With Loading Indicator
+
+```html
+<div id="image-container" style="position: relative;">
+  <img src="product.jpg" alt="Product" />
+  <div id="loading" style="display: none;">Loading...</div>
+</div>
+```
+
+```typescript
+const container = document.getElementById('image-container')
+const loading = document.getElementById('loading')
+
+const { cleanup, subscribe } = createZoomImageClick(container, {
+  zoomImageSource: '/images/product-hd.jpg'
+})
+
+subscribe((state) => {
+  loading.style.display = state.zoomedImgStatus === 'loading' ? 'block' : 'none'
+})
+```
+
+### Product Detail Page
+
+```html
+<div class="product-detail">
+  <div id="product-image" style="width: 600px; height: 600px; position: relative; cursor: zoom-in;">
+    <img src="product-thumb.jpg" alt="Product" style="width: 100%; height: 100%; object-fit: cover;" />
+  </div>
+  <p class="hint">Click to zoom, move to pan, click again to exit</p>
+</div>
+```
+
+```typescript
+const container = document.getElementById('product-image')
+
+const { cleanup } = createZoomImageClick(container, {
+  zoomFactor: 4,
+  zoomImageSource: 'product-full.jpg',
+  disableScrollLock: false
+})
+
+// Update cursor style based on zoom state
+let isZoomed = false
+container.addEventListener('pointerdown', () => {
+  isZoomed = !isZoomed
+  container.style.cursor = isZoomed ? 'zoom-out' : 'zoom-in'
+})
+```
+
+### Enable/Disable Scroll Lock
+
+```typescript
+// Keep page scrolling enabled during zoom
+const { cleanup } = createZoomImageClick(container, {
+  disableScrollLock: true
+})
+
+// Default behavior - disable scrolling during zoom
+const { cleanup } = createZoomImageClick(container, {
+  disableScrollLock: false  // or omit this option
+})
+```
+
+### Handle Loading Errors
+
+```typescript
+const { cleanup, subscribe } = createZoomImageClick(container, {
+  zoomImageSource: '/images/might-not-exist.jpg'
+})
+
+subscribe((state) => {
+  if (state.zoomedImgStatus === 'error') {
+    console.error('Failed to load zoom image')
+    // Fallback: use original image
+    // or show an error message to user
+  }
+})
+```
+
+## Features
+
+- **Click to activate**: Click once to enter zoom mode, click again to exit
+- **Panning**: Move pointer while zoomed to pan around the magnified image
+- **In-place zoom**: Magnified image overlays the original
+- **Lazy loading**: High-resolution image loads only when first clicked
+- **Loading states**: Track image loading progress
+- **Scroll lock**: Optionally disable page scrolling during zoom
+- **Auto-cleanup**: Properly removes all elements and event listeners
+- **Touch support**: Works with mouse, touch, and pen inputs
+
+## Behavior
+
+1. **First click**: Activates zoom mode, loads and displays the magnified image at the click position
+2. **Pointer move**: While zoomed, moving the pointer pans the magnified view
+3. **Second click**: Deactivates zoom mode and hides the magnified image
+4. **Boundary detection**: Automatically constrains panning to keep the image within view
+5. **Scroll control**: By default, page scrolling is disabled on pointer enter and re-enabled on pointer leave
+
+## Related Types
+
+- [ZoomImageClickOptions](/api/types/zoom-image-click-options) - Options type for click zoom
+
+## Comparison with createZoomImageMove
+
+| Feature | createZoomImageClick | createZoomImageMove |
+|---------|---------------------|--------------------|
+| Activation | Click to toggle | Hover/enter to activate |
+| Deactivation | Click again | Leave container |
+| Use case | Deliberate inspection | Quick preview |
+| User control | Explicit on/off | Automatic |
+
+## Source Reference
+
+Implementation: `/packages/core/src/createZoomImageClick.ts:19`

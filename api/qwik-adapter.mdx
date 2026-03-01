@@ -1,0 +1,460 @@
+---
+title: "Qwik Adapter"
+description: "Qwik hooks for zoom image functionality with resumable state management"
+---
+
+The Qwik adapter provides hooks for implementing zoom image functionality in Qwik applications with resumable, serializable state.
+
+## Installation
+
+```bash
+npm install @zoom-image/qwik
+```
+
+## Available Hooks
+
+The Qwik adapter exports four hooks that correspond to different zoom behaviors:
+
+- `useZoomImageWheel` - Zoom with mouse wheel
+- `useZoomImageHover` - Zoom on hover with separate zoom target
+- `useZoomImageMove` - Zoom on mouse move
+- `useZoomImageClick` - Zoom on click
+
+## useZoomImageWheel
+
+Enables zooming with mouse wheel/trackpad scrolling.
+
+### API
+
+```typescript
+function useZoomImageWheel(): {
+  createZoomImage: QRL<(...args: Parameters<typeof createZoomImageWheel>) => void>
+  zoomImageState: ZoomImageWheelState
+  setZoomImageState: QRL<(state: ZoomImageWheelStateUpdate) => void>
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageWheelState {
+  currentZoom: number
+  enable: boolean
+  currentPositionX: number
+  currentPositionY: number
+  currentRotation: number
+}
+```
+
+### Example
+
+```tsx
+import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik"
+import { useZoomImageWheel } from "@zoom-image/qwik"
+
+export default component$(() => {
+  const imageContainerRef = useSignal<HTMLDivElement>()
+  
+  const {
+    createZoomImage,
+    zoomImageState,
+    setZoomImageState
+  } = useZoomImageWheel()
+  
+  useVisibleTask$(({ track }) => {
+    track(() => imageContainerRef.value)
+    
+    if (imageContainerRef.value) {
+      createZoomImage(imageContainerRef.value)
+    }
+  })
+  
+  return (
+    <div>
+      <p>Current zoom: {Math.round(zoomImageState.currentZoom * 100)}%</p>
+      <p>Scroll inside the image to zoom</p>
+      
+      <div ref={imageContainerRef} class="h-[300px] w-[200px]">
+        <img src="/image.jpg" alt="Zoomable image" class="h-full w-full" />
+      </div>
+      
+      <div class="flex gap-2">
+        <button
+          onClick$={() => {
+            setZoomImageState({
+              currentZoom: zoomImageState.currentZoom + 0.5
+            })
+          }}
+        >
+          Zoom In
+        </button>
+        <button
+          onClick$={() => {
+            setZoomImageState({
+              currentZoom: zoomImageState.currentZoom - 0.5
+            })
+          }}
+        >
+          Zoom Out
+        </button>
+        <button
+          onClick$={() => {
+            setZoomImageState({
+              currentRotation: zoomImageState.currentRotation + 90
+            })
+          }}
+        >
+          Rotate
+        </button>
+      </div>
+    </div>
+  )
+})
+```
+
+## useZoomImageHover
+
+Displays a zoomed version in a separate container when hovering over the image.
+
+### API
+
+```typescript
+function useZoomImageHover(): {
+  createZoomImage: QRL<(...args: Parameters<typeof createZoomImageHover>) => void>
+  zoomImageState: ZoomImageHoverState
+  setZoomImageState: QRL<(state: ZoomImageHoverStateUpdate) => void>
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageHoverState {
+  enabled: boolean
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```tsx
+import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik"
+import { useZoomImageHover } from "@zoom-image/qwik"
+
+export default component$(() => {
+  const imageContainerRef = useSignal<HTMLDivElement>()
+  const zoomTargetRef = useSignal<HTMLDivElement>()
+  
+  const { createZoomImage, zoomImageState } = useZoomImageHover()
+  
+  useVisibleTask$(({ track }) => {
+    track(() => imageContainerRef.value)
+    track(() => zoomTargetRef.value)
+    
+    if (imageContainerRef.value && zoomTargetRef.value) {
+      createZoomImage(imageContainerRef.value, {
+        zoomImageSource: "/image-large.jpg",
+        customZoom: { width: 400, height: 600 },
+        zoomTarget: zoomTargetRef.value,
+        scale: 2
+      })
+    }
+  })
+  
+  return (
+    <div class="flex gap-4">
+      <div ref={imageContainerRef} class="relative h-[300px] w-[200px]">
+        <img src="/image-small.jpg" alt="Hover to zoom" class="h-full w-full" />
+      </div>
+      
+      <div ref={zoomTargetRef} class="absolute left-[250px]"></div>
+    </div>
+  )
+})
+```
+
+## useZoomImageMove
+
+Zooms the image as the mouse moves over it.
+
+### API
+
+```typescript
+function useZoomImageMove(): {
+  createZoomImage: QRL<(...args: Parameters<typeof createZoomImageMove>) => void>
+  zoomImageState: ZoomImageMoveState
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageMoveState {
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```tsx
+import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik"
+import { useZoomImageMove } from "@zoom-image/qwik"
+
+export default component$(() => {
+  const imageContainerRef = useSignal<HTMLDivElement>()
+  
+  const { createZoomImage, zoomImageState } = useZoomImageMove()
+  
+  useVisibleTask$(({ track }) => {
+    track(() => imageContainerRef.value)
+    
+    if (imageContainerRef.value) {
+      createZoomImage(imageContainerRef.value, {
+        zoomImageSource: "/image-large.jpg"
+      })
+    }
+  })
+  
+  return (
+    <div ref={imageContainerRef} class="relative h-[300px] w-[200px] overflow-hidden">
+      <img src="/image.jpg" alt="Move mouse to zoom" class="h-full w-full" />
+    </div>
+  )
+})
+```
+
+## useZoomImageClick
+
+Toggles zoom when clicking on the image.
+
+### API
+
+```typescript
+function useZoomImageClick(): {
+  createZoomImage: QRL<(...args: Parameters<typeof createZoomImageClick>) => void>
+  zoomImageState: ZoomImageClickState
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageClickState {
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```tsx
+import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik"
+import { useZoomImageClick } from "@zoom-image/qwik"
+
+export default component$(() => {
+  const imageContainerRef = useSignal<HTMLDivElement>()
+  
+  const { createZoomImage, zoomImageState } = useZoomImageClick()
+  
+  useVisibleTask$(({ track }) => {
+    track(() => imageContainerRef.value)
+    
+    if (imageContainerRef.value) {
+      createZoomImage(imageContainerRef.value, {
+        zoomImageSource: "/image-large.jpg"
+      })
+    }
+  })
+  
+  return (
+    <div ref={imageContainerRef} class="relative h-[300px] w-[200px] overflow-hidden cursor-pointer">
+      <img src="/image.jpg" alt="Click to zoom" class="h-full w-full" />
+    </div>
+  )
+})
+```
+
+## Cleanup
+
+All hooks automatically handle cleanup when the component unmounts using Qwik's cleanup function in `useVisibleTask$`. The cleanup removes event listeners and frees resources.
+
+```tsx
+useVisibleTask$(({ cleanup }) => {
+  cleanup(() => {
+    // Resources are freed automatically
+  })
+})
+```
+
+## Qwik-Specific Patterns
+
+### Using $ for Event Handlers
+
+Qwik requires the `$` suffix for event handlers to enable lazy loading:
+
+```tsx
+<button onClick$={() => {
+  setZoomImageState({ currentZoom: 2 })
+}}>Zoom</button>
+```
+
+### Tracking Reactive Dependencies
+
+Use `track()` in `useVisibleTask$` to re-run effects when dependencies change:
+
+```tsx
+useVisibleTask$(({ track }) => {
+  track(() => zoomType.value)
+  
+  // Re-runs when zoomType changes
+  if (zoomType.value === "wheel") {
+    createZoomImageWheel(containerRef.value)
+  }
+})
+```
+
+### Non-Serializable Values
+
+The zoom instance is non-serializable and uses `noSerialize()` internally. The state itself is serializable and resumable.
+
+## Combining Multiple Zoom Types
+
+```tsx
+import { component$, useSignal, useComputed$, useVisibleTask$ } from "@builder.io/qwik"
+import {
+  useZoomImageWheel,
+  useZoomImageHover,
+  useZoomImageMove,
+  useZoomImageClick
+} from "@zoom-image/qwik"
+
+type Tab = {
+  name: string
+  current: boolean
+  value: "wheel" | "hover" | "move" | "click"
+}
+
+export default component$(() => {
+  const tabs = useSignal<Tab[]>([
+    { name: "Wheel", current: true, value: "wheel" },
+    { name: "Hover", current: false, value: "hover" },
+    { name: "Move", current: false, value: "move" },
+    { name: "Click", current: false, value: "click" }
+  ])
+  
+  const imageWheelContainerRef = useSignal<HTMLDivElement>()
+  const imageHoverContainerRef = useSignal<HTMLDivElement>()
+  const imageMoveContainerRef = useSignal<HTMLDivElement>()
+  const imageClickContainerRef = useSignal<HTMLDivElement>()
+  const zoomTargetRef = useSignal<HTMLDivElement>()
+  
+  const { createZoomImage: createZoomImageWheel } = useZoomImageWheel()
+  const { createZoomImage: createZoomImageHover } = useZoomImageHover()
+  const { createZoomImage: createZoomImageMove } = useZoomImageMove()
+  const { createZoomImage: createZoomImageClick } = useZoomImageClick()
+  
+  const zoomType = useComputed$(() => {
+    return tabs.value.find(tab => tab.current)?.value || "wheel"
+  })
+  
+  useVisibleTask$(({ track }) => {
+    track(() => zoomType.value)
+    
+    if (zoomType.value === "wheel" && imageWheelContainerRef.value) {
+      createZoomImageWheel(imageWheelContainerRef.value)
+    }
+    
+    if (zoomType.value === "hover" && imageHoverContainerRef.value && zoomTargetRef.value) {
+      createZoomImageHover(imageHoverContainerRef.value, {
+        zoomImageSource: "/image-large.jpg",
+        customZoom: { width: 300, height: 500 },
+        zoomTarget: zoomTargetRef.value,
+        scale: 2
+      })
+    }
+    
+    if (zoomType.value === "move" && imageMoveContainerRef.value) {
+      createZoomImageMove(imageMoveContainerRef.value, {
+        zoomImageSource: "/image-large.jpg"
+      })
+    }
+    
+    if (zoomType.value === "click" && imageClickContainerRef.value) {
+      createZoomImageClick(imageClickContainerRef.value, {
+        zoomImageSource: "/image-large.jpg"
+      })
+    }
+  })
+  
+  return (
+    <div>
+      <nav class="flex gap-4 mb-4">
+        {tabs.value.map((tab) => (
+          <button
+            key={tab.name}
+            onClick$={() => {
+              tabs.value = tabs.value.map(t => ({
+                ...t,
+                current: t.name === tab.name
+              }))
+            }}
+            class={tab.current ? "active" : ""}
+          >
+            {tab.name}
+          </button>
+        ))}
+      </nav>
+      
+      {zoomType.value === "wheel" && (
+        <div ref={imageWheelContainerRef} class="h-[300px] w-[200px]">
+          <img src="/image.jpg" alt="Wheel zoom" class="h-full w-full" />
+        </div>
+      )}
+      
+      {zoomType.value === "hover" && (
+        <div class="flex gap-4">
+          <div ref={imageHoverContainerRef} class="h-[300px] w-[200px]">
+            <img src="/image.jpg" alt="Hover zoom" class="h-full w-full" />
+          </div>
+          <div ref={zoomTargetRef}></div>
+        </div>
+      )}
+      
+      {zoomType.value === "move" && (
+        <div ref={imageMoveContainerRef} class="h-[300px] w-[200px] overflow-hidden">
+          <img src="/image.jpg" alt="Move zoom" class="h-full w-full" />
+        </div>
+      )}
+      
+      {zoomType.value === "click" && (
+        <div ref={imageClickContainerRef} class="h-[300px] w-[200px] overflow-hidden">
+          <img src="/image.jpg" alt="Click zoom" class="h-full w-full" />
+        </div>
+      )}
+    </div>
+  )
+})
+```
+
+## TypeScript Support
+
+The Qwik adapter is written in TypeScript and provides full type definitions. Import types from `@zoom-image/core`:
+
+```typescript
+import type {
+  ZoomImageWheelState,
+  ZoomImageWheelStateUpdate,
+  ZoomImageHoverState,
+  ZoomImageHoverStateUpdate,
+  ZoomImageMoveState,
+  ZoomImageClickState
+} from "@zoom-image/core"
+```
+
+## Related
+
+- [createZoomImageWheel](/api/create-zoom-image-wheel) - Core wheel zoom function
+- [createZoomImageHover](/api/create-zoom-image-hover) - Core hover zoom function
+- [createZoomImageMove](/api/create-zoom-image-move) - Core move zoom function
+- [createZoomImageClick](/api/create-zoom-image-click) - Core click zoom function
+- [React Adapter](/adapters/react) - React implementation
+- [Vue Adapter](/adapters/vue) - Vue implementation

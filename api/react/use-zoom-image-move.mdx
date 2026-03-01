@@ -1,0 +1,169 @@
+---
+title: "useZoomImageMove"
+description: "React hook for zooming images that follow mouse or touch movement within the container"
+---
+
+## Hook Signature
+
+```typescript
+function useZoomImageMove(): {
+  createZoomImage: (
+    container: HTMLElement,
+    options?: ZoomImageMoveOptions
+  ) => void
+  zoomImageState: ZoomImageMoveState
+}
+```
+
+## Return Value
+
+The hook returns an object with the following properties:
+
+<ResponseField name="createZoomImage" type="function" required>
+  Function to initialize move-based zoom on a container element. The zoom activates when the pointer enters the container.
+  
+  <ParamField body="container" type="HTMLElement" required>
+    The container element that wraps the image element
+  </ParamField>
+  
+  <ParamField body="options" type="ZoomImageMoveOptions">
+    Configuration options for the zoom behavior
+  </ParamField>
+</ResponseField>
+
+<ResponseField name="zoomImageState" type="ZoomImageMoveState" required>
+  Reactive state object that tracks the zoomed image status
+  
+  <ParamField body="zoomedImgStatus" type="'idle' | 'loading' | 'loaded' | 'error'">
+    Loading status of the zoomed image
+  </ParamField>
+</ResponseField>
+
+## Options
+
+<ParamField path="zoomFactor" type="number" default="4">
+  Magnification factor for the zoomed image. A value of 4 means the image displays at 400% size.
+</ParamField>
+
+<ParamField path="zoomImageSource" type="string">
+  URL of the high-resolution image to display when zoomed. Defaults to the source image's `src`.
+</ParamField>
+
+<ParamField path="disabledContextMenu" type="boolean" default="false">
+  If `true`, disables the context menu on the zoomed image (useful for preventing image downloads)
+</ParamField>
+
+<ParamField path="zoomImageProps" type="object">
+  Additional props for the zoomed image element
+  
+  <ParamField path="zoomImageProps.alt" type="string">
+    Alt text for the zoomed image
+  </ParamField>
+  
+  <ParamField path="zoomImageProps.className" type="string">
+    CSS class name(s) to apply to the zoomed image element
+  </ParamField>
+</ParamField>
+
+## Example
+
+```tsx
+import { useZoomImageMove } from '@zoom-image/react'
+import { useEffect, useRef } from 'react'
+
+function ZoomableImage() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { createZoomImage, zoomImageState } = useZoomImageMove()
+
+  useEffect(() => {
+    if (containerRef.current) {
+      createZoomImage(containerRef.current, {
+        zoomImageSource: '/high-res-image.jpg',
+        zoomFactor: 4,
+      })
+    }
+  }, [])
+
+  return (
+    <div>
+      {zoomImageState.zoomedImgStatus === 'loading' && (
+        <p>Loading high-resolution image...</p>
+      )}
+      
+      <div 
+        ref={containerRef} 
+        className="relative h-[400px] w-[300px] cursor-crosshair overflow-hidden"
+      >
+        <img 
+          className="h-full w-full object-cover" 
+          alt="Zoomable product" 
+          src="/thumbnail-image.jpg" 
+        />
+      </div>
+    </div>
+  )
+}
+```
+
+## Custom Zoom Image Styling
+
+You can apply custom CSS classes to the zoomed image:
+
+```tsx
+useEffect(() => {
+  if (containerRef.current) {
+    createZoomImage(containerRef.current, {
+      zoomImageSource: '/high-res-image.jpg',
+      zoomFactor: 3,
+      zoomImageProps: {
+        alt: 'High resolution product image',
+        className: 'rounded-lg shadow-xl',
+      },
+    })
+  }
+}, [])
+```
+
+## Disable Context Menu
+
+To prevent users from saving the zoomed image via right-click:
+
+```tsx
+useEffect(() => {
+  if (containerRef.current) {
+    createZoomImage(containerRef.current, {
+      zoomImageSource: '/protected-image.jpg',
+      disabledContextMenu: true,
+    })
+  }
+}, [])
+```
+
+## Container Requirements
+
+For proper zoom behavior, the container should have:
+
+- Fixed dimensions (`height` and `width`)
+- `overflow: hidden` to prevent scrollbars
+- `position: relative` for proper positioning
+- A cursor style like `cursor: crosshair` for better UX
+
+```css
+.zoom-container {
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+  height: 400px;
+  width: 300px;
+}
+```
+
+## Cleanup
+
+The hook automatically cleans up event listeners, DOM elements, and subscriptions when the component unmounts. No manual cleanup is needed.
+
+## See Also
+
+- [createZoomImageMove](/api/create-zoom-image-move) - Core API documentation
+- [useZoomImageClick](/api/react/use-zoom-image-click) - Click-based zoom hook
+- [useZoomImageHover](/api/react/use-zoom-image-hover) - Hover-based zoom hook

@@ -1,0 +1,393 @@
+---
+title: "Zoom Modes"
+description: "Understanding the four zoom modes available in Zoom Image: wheel/pinch, hover, move, and click"
+---
+
+Zoom Image provides four distinct zoom modes, each designed for specific use cases and user interactions. All modes are built on the same headless core architecture but expose different interaction patterns.
+
+## Overview
+
+The library provides these zoom functions:
+
+- `createZoomImageWheel` - Zoom with mouse wheel or pinch gestures
+- `createZoomImageHover` - Magnifying glass effect on hover
+- `createZoomImageMove` - Follow cursor with zoomed image
+- `createZoomImageClick` - Click to zoom, then move
+
+Each function is available from the `@zoom-image/core` package and returns a consistent API with `cleanup()`, `subscribe()`, `setState()`, and `getState()` methods.
+
+## Wheel/Pinch Mode
+
+The wheel/pinch mode allows users to zoom in and out using mouse wheel scrolling or pinch gestures on touch devices. This mode is ideal for detailed image exploration and supports advanced features like rotation and pan.
+
+### When to Use
+
+- Product galleries where users need to examine details
+- Maps or diagrams requiring precise zooming
+- Photo viewers with touch and mouse support
+- Any interface requiring smooth, progressive zoom control
+
+### Configuration
+
+```typescript
+import { createZoomImageWheel } from "@zoom-image/core"
+import type { ZoomImageWheelOptions } from "@zoom-image/core"
+
+const container = document.getElementById("zoom-container")
+
+const options: ZoomImageWheelOptions = {
+  maxZoom: 4,                      // Maximum zoom level (default: 4)
+  wheelZoomRatio: 0.1,             // Zoom speed multiplier (default: 0.1)
+  dblTapAnimationDuration: 300,    // Double-tap animation duration in ms
+  shouldZoomOnSingleTouch: () => true,  // Enable single-touch zoom
+  zoomTarget: null,                // Custom zoom target element
+  initialState: {
+    currentZoom: 1,
+    enable: true,
+    currentRotation: 0
+  }
+}
+
+const zoomImage = createZoomImageWheel(container, options)
+```
+
+### State Shape
+
+The wheel/pinch mode maintains the following state:
+
+```typescript
+type ZoomImageWheelState = {
+  currentRotation: number    // Rotation angle in degrees
+  currentZoom: number        // Current zoom level (1 = no zoom)
+  enable: boolean            // Whether zoom is enabled
+  currentPositionX: number   // X-axis translation in pixels
+  currentPositionY: number   // Y-axis translation in pixels
+}
+```
+
+### Features
+
+- Mouse wheel and touchpad scrolling
+- Two-finger pinch gestures on touch devices
+- Double-tap to zoom in/out with animation
+- Pan while zoomed (single touch or mouse drag)
+- Rotation support
+- Zoom centers on cursor/touch position
+
+### Example
+
+```typescript
+const container = document.getElementById("image-container")
+const zoomImage = createZoomImageWheel(container, {
+  maxZoom: 5,
+  wheelZoomRatio: 0.15
+})
+
+// Subscribe to state changes
+zoomImage.subscribe(({ state }) => {
+  console.log("Current zoom:", state.currentZoom)
+  console.log("Position:", state.currentPositionX, state.currentPositionY)
+})
+
+// Programmatically control zoom
+zoomImage.setState({ currentZoom: 2 })
+zoomImage.setState({ currentRotation: 90 })
+
+// Cleanup when done
+zoomImage.cleanup()
+```
+
+## Hover Mode
+
+Hover mode creates a magnifying glass effect, displaying a zoomed portion of the image in a separate target element as the user moves their cursor over the source image.
+
+### When to Use
+
+- E-commerce product pages with detail views
+- Medical or scientific imagery requiring inspection
+- Art galleries or museum collections
+- Any interface where screen space allows for a dedicated zoom viewport
+
+### Configuration
+
+```typescript
+import { createZoomImageHover } from "@zoom-image/core"
+import type { ZoomImageHoverOptions } from "@zoom-image/core"
+
+const container = document.getElementById("image-container")
+const zoomTarget = document.getElementById("zoom-target")
+
+const options: ZoomImageHoverOptions = {
+  customZoom: { width: 400, height: 400 },  // Zoom viewport size (required)
+  zoomTarget: zoomTarget,                    // Where to render zoomed image (required)
+  scale: 2,                                  // Zoom scale factor (default: 2)
+  zoomImageSource: "path/to/high-res.jpg",  // Optional high-res image source
+  zoomLensClass: "custom-lens",             // CSS class for lens element
+  zoomTargetClass: "zoom-active",           // CSS class when zoom is active
+  zoomLensScale: 1,                          // Lens size multiplier (default: 1)
+  disableScrollLock: false                   // Keep scroll enabled while zooming
+}
+
+const zoomImage = createZoomImageHover(container, options)
+```
+
+### State Shape
+
+```typescript
+type ZoomImageHoverState = {
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"  // Image loading status
+  enabled: boolean                                          // Whether hover zoom is enabled
+}
+```
+
+### Features
+
+- Separate zoom target for magnified view
+- Optional high-resolution image source
+- Customizable lens appearance and size
+- Automatic scroll locking during zoom
+- Loading states for async image loading
+
+### Example
+
+```typescript
+const container = document.getElementById("product-image")
+const zoomTarget = document.getElementById("zoom-viewer")
+
+const zoomImage = createZoomImageHover(container, {
+  customZoom: { width: 500, height: 500 },
+  zoomTarget: zoomTarget,
+  scale: 3,
+  zoomImageSource: "/images/product-high-res.jpg",
+  zoomLensClass: "product-lens"
+})
+
+// Monitor loading status
+zoomImage.subscribe(({ state }) => {
+  if (state.zoomedImgStatus === "loading") {
+    console.log("Loading high-res image...")
+  } else if (state.zoomedImgStatus === "loaded") {
+    console.log("High-res image ready")
+  }
+})
+
+// Disable hover zoom temporarily
+zoomImage.setState({ enabled: false })
+```
+
+## Move Mode
+
+Move mode displays a zoomed version of the image that follows the cursor position. The zoomed image appears directly over the container.
+
+### When to Use
+
+- Mobile-friendly image viewers
+- Simple product image zoom without separate viewport
+- Touch-enabled galleries
+- Interfaces where space for a separate zoom target is limited
+
+### Configuration
+
+```typescript
+import { createZoomImageMove } from "@zoom-image/core"
+import type { ZoomImageMoveOptions } from "@zoom-image/core"
+
+const container = document.getElementById("image-container")
+
+const options: ZoomImageMoveOptions = {
+  zoomFactor: 4,                             // Zoom magnification (default: 4)
+  zoomImageSource: "path/to/high-res.jpg",  // Optional high-res image
+  disableScrollLock: false,                  // Deprecated - kept for compatibility
+  disabledContextMenu: false,                // Disable right-click context menu
+  zoomImageProps: {
+    alt: "Zoomed product image",
+    className: "zoomed-image"
+  }
+}
+
+const zoomImage = createZoomImageMove(container, options)
+```
+
+### State Shape
+
+```typescript
+type ZoomImageMoveState = {
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"  // Image loading status
+}
+```
+
+### Features
+
+- Zoomed image follows cursor/touch position
+- Single pointer tracking (first touch/pointer wins)
+- Automatic scroll disabling on touch devices
+- Optional context menu prevention for touch devices
+- Bounds checking to keep zoom within container
+
+### Example
+
+```typescript
+const container = document.getElementById("gallery-image")
+
+const zoomImage = createZoomImageMove(container, {
+  zoomFactor: 3,
+  disabledContextMenu: true,  // Prevent long-press menu on mobile
+  zoomImageProps: {
+    alt: "Magnified view",
+    className: "zoom-overlay"
+  }
+})
+
+// Monitor loading state
+zoomImage.subscribe(({ state }) => {
+  console.log("Image status:", state.zoomedImgStatus)
+})
+
+// Cleanup when component unmounts
+zoomImage.cleanup()
+```
+
+## Click Mode
+
+Click mode requires users to click to activate zoom, then move their cursor to pan the zoomed image. Clicking again deactivates the zoom.
+
+### When to Use
+
+- Interfaces where hover interactions are used for other purposes
+- Mobile-first designs (tap to zoom)
+- When explicit user intent is required before zooming
+- Gallery lightboxes or modal viewers
+
+### Configuration
+
+```typescript
+import { createZoomImageClick } from "@zoom-image/core"
+import type { ZoomImageClickOptions } from "@zoom-image/core"
+
+const container = document.getElementById("image-container")
+
+const options: ZoomImageClickOptions = {
+  zoomFactor: 4,                             // Zoom magnification (default: 4)
+  zoomImageSource: "path/to/high-res.jpg",  // Optional high-res image
+  disableScrollLock: false,                  // Keep scroll enabled (default: false)
+  zoomImageProps: {
+    alt: "Zoomed image"
+  }
+}
+
+const zoomImage = createZoomImageClick(container, options)
+```
+
+### State Shape
+
+```typescript
+type ZoomImageClickState = {
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"  // Image loading status
+}
+```
+
+### Features
+
+- Click/tap to activate zoom mode
+- Move cursor/touch to pan while zoomed
+- Click/tap again to deactivate
+- Optional scroll lock control
+- Bounds checking for pan limits
+
+### Example
+
+```typescript
+const container = document.getElementById("artwork")
+
+const zoomImage = createZoomImageClick(container, {
+  zoomFactor: 5,
+  disableScrollLock: false,
+  zoomImageProps: {
+    alt: "High resolution artwork detail"
+  }
+})
+
+// Track zoom activation
+let isZooming = false
+container.addEventListener("pointerdown", () => {
+  isZooming = !isZooming
+  console.log(isZooming ? "Zoom activated" : "Zoom deactivated")
+})
+
+// Cleanup
+zoomImage.cleanup()
+```
+
+## Common Patterns
+
+### Cleanup and Memory Management
+
+All zoom modes return a cleanup function that should be called when the zoom instance is no longer needed:
+
+```typescript
+const zoomImage = createZoomImageWheel(container, options)
+
+// Later, when component unmounts or container is removed:
+zoomImage.cleanup()
+```
+
+### State Subscription
+
+Subscribe to state changes to sync with your UI framework:
+
+```typescript
+const unsubscribe = zoomImage.subscribe(({ state, prevState }) => {
+  console.log("State changed from", prevState, "to", state)
+})
+
+// Unsubscribe when no longer needed
+unsubscribe()
+```
+
+### Programmatic Control
+
+All modes except move and click support programmatic state updates:
+
+```typescript
+// Wheel mode
+zoomImage.setState({ 
+  currentZoom: 3,
+  currentRotation: 90,
+  enable: true 
+})
+
+// Hover mode
+zoomImage.setState({ 
+  enabled: false 
+})
+```
+
+### High-Resolution Images
+
+For better image quality, provide a separate high-resolution image source:
+
+```typescript
+const zoomImage = createZoomImageHover(container, {
+  // ... other options
+  zoomImageSource: "/images/product@4x.jpg"  // High-res version
+})
+```
+
+The library automatically handles loading states while the high-res image loads.
+
+## Choosing the Right Mode
+
+| Mode | Best For | Interaction | Mobile Support |
+|------|----------|-------------|----------------|
+| **Wheel/Pinch** | Detailed exploration, maps, technical diagrams | Scroll/pinch + pan | Excellent |
+| **Hover** | E-commerce, separate zoom viewport | Hover to activate | Desktop only |
+| **Move** | Simple zoom, limited space | Hover/touch to activate and follow | Good |
+| **Click** | Explicit user control, mobile-first | Click/tap to toggle, move to pan | Excellent |
+
+<Note>
+All zoom modes work with the container's `img` element by default. Make sure your container has exactly one `<img>` element as a child.
+</Note>
+
+<Warning>
+Remember to call `cleanup()` when removing zoom instances to prevent memory leaks and remove event listeners.
+</Warning>

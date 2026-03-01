@@ -1,0 +1,526 @@
+---
+title: Wheel Zoom Example
+description: Interactive zoom with mouse wheel or pinch gestures, including programmatic controls
+---
+
+Wheel zoom allows users to zoom in and out by scrolling with their mouse wheel or using pinch gestures on touch devices. This is the most versatile zoom mode, supporting programmatic controls, rotation, and image cropping.
+
+## Features
+
+- Scroll or pinch to zoom in/out
+- Programmatic zoom controls (zoom in/out buttons)
+- Image rotation at 90-degree increments
+- Image cropping based on current zoom state
+- Real-time zoom percentage display
+- State management and subscriptions
+
+## Vanilla JavaScript
+
+<Tabs>
+  <Tab title="HTML">
+    ```html
+    <div id="image-wheel-container" class="h-[300px] w-[200px]">
+      <img src="/sample.avif" alt="Zoomable image" />
+    </div>
+
+    <p id="currentZoom">Current zoom: 100%</p>
+
+    <div>
+      <button id="zoomInBtn">Zoom in</button>
+      <button id="zoomOutBtn">Zoom out</button>
+      <button id="cropImgBtn">Crop image</button>
+      <button id="rotateImgBtn">Rotate</button>
+    </div>
+
+    <img id="cropImg" hidden alt="Cropped" />
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    import { createZoomImageWheel, cropImage } from "@zoom-image/core";
+
+    const container = document.getElementById("image-wheel-container");
+    const result = createZoomImageWheel(container);
+
+    const controller = new AbortController();
+    const cropImg = document.getElementById("cropImg");
+    const currentZoom = document.getElementById("currentZoom");
+    const zoomInBtn = document.getElementById("zoomInBtn");
+    const zoomOutBtn = document.getElementById("zoomOutBtn");
+    const cropImgBtn = document.getElementById("cropImgBtn");
+    const rotateImgBtn = document.getElementById("rotateImgBtn");
+
+    // Subscribe to zoom state changes
+    result.subscribe(({ state }) => {
+      currentZoom.textContent = `Current zoom: ${Math.round(state.currentZoom * 100)}%`;
+    });
+
+    // Zoom in button
+    zoomInBtn.addEventListener(
+      "click",
+      () => {
+        result.setState({
+          currentZoom: result.getState().currentZoom + 0.5,
+        });
+      },
+      { signal: controller.signal }
+    );
+
+    // Zoom out button
+    zoomOutBtn.addEventListener(
+      "click",
+      () => {
+        result.setState({
+          currentZoom: result.getState().currentZoom - 0.5,
+        });
+      },
+      { signal: controller.signal }
+    );
+
+    // Crop image
+    async function handleCropImage() {
+      const currentState = result.getState();
+      const croppedImage = await cropImage({
+        image: container.querySelector("img"),
+        currentZoom: currentState.currentZoom,
+        positionX: currentState.currentPositionX,
+        positionY: currentState.currentPositionY,
+        rotation: currentState.currentRotation,
+      });
+
+      cropImg.src = croppedImage;
+      cropImg.hidden = false;
+    }
+
+    cropImgBtn.addEventListener("click", handleCropImage, {
+      signal: controller.signal,
+    });
+
+    // Rotate image
+    rotateImgBtn.addEventListener(
+      "click",
+      () => {
+        result.setState({
+          currentRotation: result.getState().currentRotation + 90,
+        });
+      },
+      { signal: controller.signal }
+    );
+
+    // Cleanup
+    function cleanup() {
+      result.cleanup();
+      controller.abort();
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## React
+
+```tsx
+import { cropImage } from "@zoom-image/core";
+import { useZoomImageWheel } from "@zoom-image/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+function WheelZoomExample() {
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const [croppedImage, setCroppedImage] = useState<string | null>(null);
+
+  const {
+    createZoomImage,
+    zoomImageState,
+    setZoomImageState,
+  } = useZoomImageWheel();
+
+  // Initialize zoom on mount
+  useEffect(() => {
+    if (imageContainerRef.current) {
+      createZoomImage(imageContainerRef.current);
+    }
+  }, [createZoomImage]);
+
+  const croppedImageClasses = useMemo(() => {
+    if (zoomImageState.currentRotation % 180 === 90) {
+      return "h-[200px] w-[300px]";
+    }
+    return "h-[300px] w-[200px]";
+  }, [zoomImageState.currentRotation]);
+
+  async function handleCropImage() {
+    const cropped = await cropImage({
+      currentZoom: zoomImageState.currentZoom,
+      image: imageContainerRef.current?.querySelector("img") as HTMLImageElement,
+      positionX: zoomImageState.currentPositionX,
+      positionY: zoomImageState.currentPositionY,
+      rotation: zoomImageState.currentRotation,
+    });
+    setCroppedImage(cropped);
+  }
+
+  function zoomIn() {
+    setZoomImageState({
+      currentZoom: zoomImageState.currentZoom + 0.5,
+    });
+  }
+
+  function zoomOut() {
+    setZoomImageState({
+      currentZoom: zoomImageState.currentZoom - 0.5,
+    });
+  }
+
+  function rotate() {
+    setZoomImageState({
+      currentRotation: zoomImageState.currentRotation + 90,
+    });
+  }
+
+  return (
+    <div>
+      <p>Current zoom: {Math.round(zoomImageState.currentZoom * 100)}%</p>
+      <p>Scroll inside the image to zoom in/out</p>
+
+      <div className="flex items-center gap-4">
+        <div className="h-[300px] w-[300px] bg-black grid place-content-center">
+          <div
+            ref={imageContainerRef}
+            className="h-[300px] w-[200px] cursor-crosshair"
+          >
+            <img
+              className="h-full w-full"
+              alt="Zoomable"
+              src="/sample.avif"
+            />
+          </div>
+        </div>
+        {croppedImage && (
+          <img
+            src={croppedImage}
+            className={croppedImageClasses}
+            alt="Cropped"
+          />
+        )}
+      </div>
+
+      <div className="flex space-x-2 mt-4">
+        <button onClick={zoomIn}>Zoom in</button>
+        <button onClick={zoomOut}>Zoom out</button>
+        <button onClick={handleCropImage}>Crop image</button>
+        <button onClick={rotate}>Rotate</button>
+      </div>
+    </div>
+  );
+}
+
+export default WheelZoomExample;
+```
+
+## Vue
+
+```vue
+<script setup lang="ts">
+import { cropImage } from "@zoom-image/core";
+import { useZoomImageWheel } from "@zoom-image/vue";
+import { computed, onMounted, ref } from "vue";
+
+const imageContainerRef = ref<HTMLDivElement>();
+const croppedImage = ref<string>();
+
+const {
+  createZoomImage,
+  zoomImageState,
+  setZoomImageState,
+} = useZoomImageWheel();
+
+const croppedImageClasses = computed(() => {
+  if (zoomImageState.currentRotation % 180 === 90) {
+    return "h-[200px] w-[300px]";
+  }
+  return "h-[300px] w-[200px]";
+});
+
+const handleCropImage = async () => {
+  croppedImage.value = await cropImage({
+    currentZoom: zoomImageState.currentZoom,
+    image: (imageContainerRef.value as HTMLDivElement).querySelector("img") as HTMLImageElement,
+    positionX: zoomImageState.currentPositionX,
+    positionY: zoomImageState.currentPositionY,
+    rotation: zoomImageState.currentRotation,
+  });
+};
+
+const zoomIn = () => {
+  setZoomImageState({
+    currentZoom: zoomImageState.currentZoom + 0.5,
+  });
+};
+
+const zoomOut = () => {
+  setZoomImageState({
+    currentZoom: zoomImageState.currentZoom - 0.5,
+  });
+};
+
+const rotate = () => {
+  setZoomImageState({
+    currentRotation: zoomImageState.currentRotation + 90,
+  });
+
+  if (croppedImage.value) {
+    handleCropImage();
+  }
+};
+
+onMounted(() => {
+  createZoomImage(imageContainerRef.value as HTMLDivElement);
+});
+</script>
+
+<template>
+  <div>
+    <p>Scroll / Pinch inside the image to see zoom in-out effect</p>
+    <p>Current zoom: {{ `${Math.round(zoomImageState.currentZoom * 100)}%` }}</p>
+
+    <div class="flex items-center gap-4">
+      <div class="mt-1 grid h-[300px] w-[300px] place-content-center bg-black">
+        <div ref="imageContainerRef" class="h-[300px] w-[200px] cursor-crosshair">
+          <img class="h-full w-full" alt="Large Pic" src="/sample.avif" />
+        </div>
+      </div>
+      <img
+        v-if="croppedImage"
+        :src="croppedImage"
+        :class="croppedImageClasses"
+        alt="Cropped"
+      />
+    </div>
+
+    <div class="flex space-x-2 mt-4">
+      <button @click="zoomIn">Zoom in</button>
+      <button @click="zoomOut">Zoom out</button>
+      <button @click="handleCropImage">Crop image</button>
+      <button @click="rotate">Rotate</button>
+    </div>
+  </div>
+</template>
+```
+
+## Svelte
+
+```svelte
+<script lang="ts">
+  import { cropImage, type ZoomImageWheelState } from "@zoom-image/core";
+  import { useZoomImageWheel } from "@zoom-image/svelte";
+  import { onMount } from "svelte";
+
+  let imageContainer: HTMLDivElement;
+  let croppedImage: string = "";
+
+  let {
+    createZoomImage,
+    zoomImageState,
+    setZoomImageState,
+  } = useZoomImageWheel();
+
+  let zoomImageStateValue: ZoomImageWheelState;
+
+  zoomImageState.subscribe((value) => {
+    zoomImageStateValue = value;
+  });
+
+  $: croppedImageClasses =
+    zoomImageStateValue.currentRotation % 180 === 90
+      ? "h-[200px] w-[300px]"
+      : "h-[300px] w-[200px]";
+
+  async function handleCropImage() {
+    croppedImage = await cropImage({
+      currentZoom: zoomImageStateValue.currentZoom,
+      image: imageContainer.querySelector("img") as HTMLImageElement,
+      positionX: zoomImageStateValue.currentPositionX,
+      positionY: zoomImageStateValue.currentPositionY,
+      rotation: zoomImageStateValue.currentRotation,
+    });
+  }
+
+  function rotate() {
+    setZoomImageState({
+      currentRotation: zoomImageStateValue.currentRotation + 90,
+    });
+
+    if (croppedImage) {
+      handleCropImage();
+    }
+  }
+
+  onMount(() => createZoomImage(imageContainer));
+</script>
+
+<div>
+  <p>Current zoom: {`${Math.round(zoomImageStateValue.currentZoom * 100)}%`}</p>
+  <p>Scroll inside the image to see zoom in-out effect</p>
+
+  <div class="flex items-center gap-4">
+    <div class="mt-1 grid h-[300px] w-[300px] place-content-center bg-black">
+      <div bind:this={imageContainer} class="h-[300px] w-[200px] cursor-crosshair">
+        <img class="h-full w-full" alt="Large Pic" src="/sample.avif" />
+      </div>
+    </div>
+
+    {#if croppedImage !== ""}
+      <img src={croppedImage} class={croppedImageClasses} alt="Cropped" />
+    {/if}
+  </div>
+
+  <div class="flex space-x-2 mt-4">
+    <button
+      on:click={() => {
+        setZoomImageState({
+          currentZoom: zoomImageStateValue.currentZoom + 0.5,
+        });
+      }}
+    >
+      Zoom in
+    </button>
+    <button
+      on:click={() => {
+        setZoomImageState({
+          currentZoom: zoomImageStateValue.currentZoom - 0.5,
+        });
+      }}
+    >
+      Zoom out
+    </button>
+    <button on:click={handleCropImage}>Crop image</button>
+    <button on:click={rotate}>Rotate</button>
+  </div>
+</div>
+```
+
+## Angular
+
+```typescript
+import { AfterViewInit, Component, ElementRef, ViewChild } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { ZoomImageWheelService } from "@zoom-image/angular";
+import { ZoomImageWheelState, cropImage } from "@zoom-image/core";
+
+@Component({
+  selector: "app-wheel-zoom",
+  templateUrl: "./wheel-zoom.component.html",
+  providers: [ZoomImageWheelService],
+  imports: [CommonModule],
+})
+export class WheelZoomComponent implements AfterViewInit {
+  @ViewChild("imageContainer") imageContainerRef?: ElementRef<HTMLDivElement>;
+
+  croppedImage: string = "";
+  zoomImageState: ZoomImageWheelState = this.zoomService.zoomImageState;
+
+  constructor(private zoomService: ZoomImageWheelService) {}
+
+  ngAfterViewInit(): void {
+    if (this.imageContainerRef) {
+      this.zoomService.createZoomImage(
+        this.imageContainerRef.nativeElement
+      );
+      this.zoomService.zoomImageState$.subscribe((state) => {
+        this.zoomImageState = state;
+      });
+    }
+  }
+
+  getCurrentZoom() {
+    return `${Math.round(this.zoomImageState.currentZoom * 100)}%`;
+  }
+
+  zoomIn() {
+    this.zoomService.setZoomImageState({
+      currentZoom: this.zoomImageState.currentZoom + 0.5,
+    });
+  }
+
+  zoomOut() {
+    this.zoomService.setZoomImageState({
+      currentZoom: this.zoomImageState.currentZoom - 0.5,
+    });
+  }
+
+  rotate() {
+    const currentRotation = this.zoomImageState.currentRotation + 90;
+    this.zoomService.setZoomImageState({ currentRotation });
+
+    if (this.croppedImage) {
+      this.handleCropImage(currentRotation);
+    }
+  }
+
+  async handleCropImage(currentRotation = this.zoomImageState.currentRotation) {
+    this.croppedImage = await cropImage({
+      currentZoom: this.zoomImageState.currentZoom,
+      image: (this.imageContainerRef?.nativeElement as HTMLDivElement)
+        .querySelector("img") as HTMLImageElement,
+      positionX: this.zoomImageState.currentPositionX,
+      positionY: this.zoomImageState.currentPositionY,
+      rotation: currentRotation,
+    });
+  }
+
+  getCroppedImageClasses() {
+    if (this.zoomImageState.currentRotation % 180 === 90) {
+      return "h-[200px] w-[300px]";
+    }
+    return "h-[300px] w-[200px]";
+  }
+}
+```
+
+## Key Configuration Options
+
+### maxZoom
+Sets the maximum zoom level (default: 4).
+
+```javascript
+const result = createZoomImageWheel(container, {
+  maxZoom: 5,
+});
+```
+
+### wheelZoomRatio
+Controls zoom increment per scroll event (default: 0.1).
+
+```javascript
+const result = createZoomImageWheel(container, {
+  wheelZoomRatio: 0.2, // Faster zooming
+});
+```
+
+### zoomImageSource
+Specifies a high-resolution image for zoomed view.
+
+```javascript
+const result = createZoomImageWheel(container, {
+  zoomImageSource: "/high-res-image.jpg",
+});
+```
+
+## Common Use Cases
+
+### Image Editor
+Provide users with zoom controls, rotation, and cropping capabilities for image editing applications.
+
+### Product Photography
+Allow customers to examine product details with smooth zoom interactions on both desktop and mobile devices.
+
+### Medical Imaging
+Enable healthcare professionals to zoom and pan through diagnostic images with precise control.
+
+### Map Viewers
+Implement interactive map exploration with wheel zoom and programmatic navigation controls.
+
+## Related
+
+- [API Reference: createZoomImageWheel](/api/create-zoom-image-wheel)
+- [API Reference: cropImage](/api/crop-image)
+- [Wheel Zoom Options Type](/api/types/zoom-image-wheel-options)

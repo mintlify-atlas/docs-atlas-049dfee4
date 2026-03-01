@@ -1,0 +1,389 @@
+---
+title: "Preact Adapter"
+description: "Preact hooks for zoom image functionality with reactive state management"
+---
+
+The Preact adapter provides hooks for implementing zoom image functionality in Preact applications.
+
+## Installation
+
+```bash
+npm install @zoom-image/preact
+```
+
+## Available Hooks
+
+The Preact adapter exports four hooks that correspond to different zoom behaviors:
+
+- `useZoomImageWheel` - Zoom with mouse wheel
+- `useZoomImageHover` - Zoom on hover with separate zoom target
+- `useZoomImageMove` - Zoom on mouse move
+- `useZoomImageClick` - Zoom on click
+
+## useZoomImageWheel
+
+Enables zooming with mouse wheel/trackpad scrolling.
+
+### API
+
+```typescript
+function useZoomImageWheel(): {
+  createZoomImage: (...args: Parameters<typeof createZoomImageWheel>) => void
+  zoomImageState: ZoomImageWheelState
+  setZoomImageState: (state: ZoomImageWheelStateUpdate) => void
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageWheelState {
+  currentZoom: number
+  enable: boolean
+  currentPositionX: number
+  currentPositionY: number
+  currentRotation: number
+}
+```
+
+### Example
+
+```tsx
+import { useRef, useEffect } from "preact/hooks"
+import { useZoomImageWheel } from "@zoom-image/preact"
+
+function ZoomWheel() {
+  const imageContainerRef = useRef<HTMLDivElement>(null)
+  
+  const {
+    createZoomImage,
+    zoomImageState,
+    setZoomImageState
+  } = useZoomImageWheel()
+  
+  useEffect(() => {
+    if (imageContainerRef.current) {
+      createZoomImage(imageContainerRef.current)
+    }
+  }, [])
+  
+  function zoomIn() {
+    setZoomImageState({
+      currentZoom: zoomImageState.currentZoom + 0.5
+    })
+  }
+  
+  function zoomOut() {
+    setZoomImageState({
+      currentZoom: zoomImageState.currentZoom - 0.5
+    })
+  }
+  
+  function rotate() {
+    setZoomImageState({
+      currentRotation: zoomImageState.currentRotation + 90
+    })
+  }
+  
+  return (
+    <div>
+      <p>Current zoom: {Math.round(zoomImageState.currentZoom * 100)}%</p>
+      <p>Scroll inside the image to zoom</p>
+      
+      <div ref={imageContainerRef} class="h-[300px] w-[200px]">
+        <img src="/image.jpg" alt="Zoomable image" class="h-full w-full" />
+      </div>
+      
+      <div class="flex gap-2">
+        <button onClick={zoomIn}>Zoom In</button>
+        <button onClick={zoomOut}>Zoom Out</button>
+        <button onClick={rotate}>Rotate</button>
+      </div>
+    </div>
+  )
+}
+```
+
+## useZoomImageHover
+
+Displays a zoomed version in a separate container when hovering over the image.
+
+### API
+
+```typescript
+function useZoomImageHover(): {
+  createZoomImage: (...args: Parameters<typeof createZoomImageHover>) => void
+  zoomImageState: ZoomImageHoverState
+  setZoomImageState: (state: ZoomImageHoverStateUpdate) => void
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageHoverState {
+  enabled: boolean
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```tsx
+import { useRef, useEffect } from "preact/hooks"
+import { useZoomImageHover } from "@zoom-image/preact"
+
+function ZoomHover() {
+  const imageContainerRef = useRef<HTMLDivElement>(null)
+  const zoomTargetRef = useRef<HTMLDivElement>(null)
+  
+  const { createZoomImage, zoomImageState } = useZoomImageHover()
+  
+  useEffect(() => {
+    if (imageContainerRef.current && zoomTargetRef.current) {
+      createZoomImage(imageContainerRef.current, {
+        zoomImageSource: "/image-large.jpg",
+        customZoom: { width: 400, height: 600 },
+        zoomTarget: zoomTargetRef.current,
+        scale: 2
+      })
+    }
+  }, [])
+  
+  return (
+    <div class="flex gap-4">
+      <div ref={imageContainerRef} class="relative h-[300px] w-[200px]">
+        <img src="/image-small.jpg" alt="Hover to zoom" class="h-full w-full" />
+      </div>
+      
+      <div ref={zoomTargetRef} class="absolute left-[250px]"></div>
+    </div>
+  )
+}
+```
+
+## useZoomImageMove
+
+Zooms the image as the mouse moves over it.
+
+### API
+
+```typescript
+function useZoomImageMove(): {
+  createZoomImage: (...args: Parameters<typeof createZoomImageMove>) => void
+  zoomImageState: ZoomImageMoveState
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageMoveState {
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```tsx
+import { useRef, useEffect } from "preact/hooks"
+import { useZoomImageMove } from "@zoom-image/preact"
+
+function ZoomMove() {
+  const imageContainerRef = useRef<HTMLDivElement>(null)
+  
+  const { createZoomImage, zoomImageState } = useZoomImageMove()
+  
+  useEffect(() => {
+    if (imageContainerRef.current) {
+      createZoomImage(imageContainerRef.current, {
+        zoomImageSource: "/image-large.jpg"
+      })
+    }
+  }, [])
+  
+  return (
+    <div ref={imageContainerRef} class="relative h-[300px] w-[200px] overflow-hidden">
+      <img src="/image.jpg" alt="Move mouse to zoom" class="h-full w-full" />
+    </div>
+  )
+}
+```
+
+## useZoomImageClick
+
+Toggles zoom when clicking on the image.
+
+### API
+
+```typescript
+function useZoomImageClick(): {
+  createZoomImage: (...args: Parameters<typeof createZoomImageClick>) => void
+  zoomImageState: ZoomImageClickState
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageClickState {
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```tsx
+import { useRef, useEffect } from "preact/hooks"
+import { useZoomImageClick } from "@zoom-image/preact"
+
+function ZoomClick() {
+  const imageContainerRef = useRef<HTMLDivElement>(null)
+  
+  const { createZoomImage, zoomImageState } = useZoomImageClick()
+  
+  useEffect(() => {
+    if (imageContainerRef.current) {
+      createZoomImage(imageContainerRef.current, {
+        zoomImageSource: "/image-large.jpg"
+      })
+    }
+  }, [])
+  
+  return (
+    <div ref={imageContainerRef} class="relative h-[300px] w-[200px] overflow-hidden cursor-pointer">
+      <img src="/image.jpg" alt="Click to zoom" class="h-full w-full" />
+    </div>
+  )
+}
+```
+
+## Cleanup
+
+All hooks automatically handle cleanup when the component unmounts using the `useEffect` hook. The cleanup removes event listeners and frees resources.
+
+```tsx
+useEffect(() => {
+  return () => {
+    // Cleanup is automatic
+  }
+}, [])
+```
+
+## Combining Multiple Zoom Types
+
+You can combine multiple zoom behaviors in a single component:
+
+```tsx
+import { useState, useRef, useEffect } from "preact/hooks"
+import {
+  useZoomImageWheel,
+  useZoomImageHover,
+  useZoomImageMove,
+  useZoomImageClick
+} from "@zoom-image/preact"
+
+function MultiZoom() {
+  const [zoomType, setZoomType] = useState<"wheel" | "hover" | "move" | "click">("wheel")
+  
+  const imageWheelRef = useRef<HTMLDivElement>(null)
+  const imageHoverRef = useRef<HTMLDivElement>(null)
+  const imageMoveRef = useRef<HTMLDivElement>(null)
+  const imageClickRef = useRef<HTMLDivElement>(null)
+  const zoomTargetRef = useRef<HTMLDivElement>(null)
+  
+  const { createZoomImage: createZoomImageWheel } = useZoomImageWheel()
+  const { createZoomImage: createZoomImageHover } = useZoomImageHover()
+  const { createZoomImage: createZoomImageMove } = useZoomImageMove()
+  const { createZoomImage: createZoomImageClick } = useZoomImageClick()
+  
+  useEffect(() => {
+    if (zoomType === "wheel" && imageWheelRef.current) {
+      createZoomImageWheel(imageWheelRef.current)
+    }
+    
+    if (zoomType === "hover" && imageHoverRef.current && zoomTargetRef.current) {
+      createZoomImageHover(imageHoverRef.current, {
+        zoomImageSource: "/image-large.jpg",
+        customZoom: { width: 300, height: 500 },
+        zoomTarget: zoomTargetRef.current,
+        scale: 2
+      })
+    }
+    
+    if (zoomType === "move" && imageMoveRef.current) {
+      createZoomImageMove(imageMoveRef.current, {
+        zoomImageSource: "/image-large.jpg"
+      })
+    }
+    
+    if (zoomType === "click" && imageClickRef.current) {
+      createZoomImageClick(imageClickRef.current, {
+        zoomImageSource: "/image-large.jpg"
+      })
+    }
+  }, [zoomType])
+  
+  return (
+    <div>
+      <nav class="flex gap-4 mb-4">
+        <button onClick={() => setZoomType("wheel")}>Wheel</button>
+        <button onClick={() => setZoomType("hover")}>Hover</button>
+        <button onClick={() => setZoomType("move")}>Move</button>
+        <button onClick={() => setZoomType("click")}>Click</button>
+      </nav>
+      
+      {zoomType === "wheel" && (
+        <div ref={imageWheelRef} class="h-[300px] w-[200px]">
+          <img src="/image.jpg" alt="Wheel zoom" class="h-full w-full" />
+        </div>
+      )}
+      
+      {zoomType === "hover" && (
+        <div class="flex gap-4">
+          <div ref={imageHoverRef} class="h-[300px] w-[200px]">
+            <img src="/image.jpg" alt="Hover zoom" class="h-full w-full" />
+          </div>
+          <div ref={zoomTargetRef}></div>
+        </div>
+      )}
+      
+      {zoomType === "move" && (
+        <div ref={imageMoveRef} class="h-[300px] w-[200px] overflow-hidden">
+          <img src="/image.jpg" alt="Move zoom" class="h-full w-full" />
+        </div>
+      )}
+      
+      {zoomType === "click" && (
+        <div ref={imageClickRef} class="h-[300px] w-[200px] overflow-hidden">
+          <img src="/image.jpg" alt="Click zoom" class="h-full w-full" />
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+## TypeScript Support
+
+The Preact adapter is written in TypeScript and provides full type definitions. Import types from `@zoom-image/core`:
+
+```typescript
+import type {
+  ZoomImageWheelState,
+  ZoomImageWheelStateUpdate,
+  ZoomImageHoverState,
+  ZoomImageHoverStateUpdate,
+  ZoomImageMoveState,
+  ZoomImageClickState
+} from "@zoom-image/core"
+```
+
+## Related
+
+- [createZoomImageWheel](/api/create-zoom-image-wheel) - Core wheel zoom function
+- [createZoomImageHover](/api/create-zoom-image-hover) - Core hover zoom function
+- [createZoomImageMove](/api/create-zoom-image-move) - Core move zoom function
+- [createZoomImageClick](/api/create-zoom-image-click) - Core click zoom function
+- [React Adapter](/adapters/react) - React implementation
+- [Svelte Adapter](/adapters/svelte) - Svelte implementation

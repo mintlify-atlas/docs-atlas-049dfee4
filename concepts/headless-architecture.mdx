@@ -1,0 +1,401 @@
+---
+title: "Headless Architecture"
+description: "Understanding the headless pattern used by Zoom Image and how framework adapters work"
+---
+
+Zoom Image is built on a headless architecture, separating the core zoom logic from UI framework concerns. This design enables the library to work seamlessly across vanilla JavaScript, React, Vue, Angular, Svelte, and other frameworks.
+
+## What is Headless?
+
+A headless library provides the logic and state management for a feature without prescribing how it should be rendered or integrated into a specific UI framework. This means:
+
+- **No UI dependencies** - The core library has zero dependencies on React, Vue, or any other framework
+- **Framework agnostic** - The same core logic powers all framework integrations
+- **Full control** - Developers control the HTML structure and styling
+- **Smaller bundles** - Only include the framework adapter you need
+
+## Architecture Overview
+
+The Zoom Image library consists of three layers:
+
+```
+┌─────────────────────────────────────────┐
+│   Framework Adapters                    │
+│   (@zoom-image/react, vue, angular...)  │
+│   - Hooks/Composables/Services          │
+│   - Framework-specific reactivity       │
+└─────────────────────────────────────────┘
+                  ↓ uses
+┌─────────────────────────────────────────┐
+│   Core Library (@zoom-image/core)       │
+│   - createZoomImageWheel()              │
+│   - createZoomImageHover()              │
+│   - createZoomImageMove()               │
+│   - createZoomImageClick()              │
+│   - State management (@namnode/store)   │
+└─────────────────────────────────────────┘
+                  ↓ manipulates
+┌─────────────────────────────────────────┐
+│   DOM Layer                             │
+│   - Event listeners                     │
+│   - Transform calculations              │
+│   - Image loading                       │
+└─────────────────────────────────────────┘
+```
+
+## Core Library Design
+
+The core library (`@zoom-image/core`) is a vanilla TypeScript implementation that works directly with the DOM.
+
+### Pure Functions
+
+Each zoom mode is created by a pure function that takes a container element and options:
+
+```typescript
+import { createZoomImageWheel } from "@zoom-image/core"
+
+// Pure function - no framework dependencies
+const zoomImage = createZoomImageWheel(
+  containerElement,  // HTMLElement
+  options            // Configuration object
+)
+```
+
+### Consistent Return API
+
+All create functions return the same interface:
+
+```typescript
+type ZoomImageInstance = {
+  cleanup: () => void                    // Remove event listeners and clean up
+  subscribe: (callback) => () => void    // Subscribe to state changes
+  getState: () => State                  // Get current state
+  setState?: (newState) => void          // Update state (not all modes)
+}
+```
+
+This consistency makes it easy to build framework adapters and switch between zoom modes.
+
+### State Management
+
+The core uses `@namnode/store` for state management - a lightweight, framework-agnostic observable store:
+
+```typescript
+import { createStore } from "@namnode/store"
+
+// Inside createZoomImageWheel
+const store = createStore<ZoomImageWheelState>({
+  currentZoom: 1,
+  enable: true,
+  currentPositionX: 0,
+  currentPositionY: 0,
+  currentRotation: 0,
+})
+
+// Subscribe to changes
+store.subscribe(({ state, prevState }) => {
+  // React to state changes
+})
+
+// Update state
+store.setState({ currentZoom: 2 })
+```
+
+The store provides:
+- Subscription-based reactivity
+- Batch updates for performance
+- Type-safe state access
+- Cleanup utilities
+
+### Event Handling
+
+The core library manages all DOM event listeners using the `AbortController` API for clean cleanup:
+
+```typescript
+// From createZoomImageWheel implementation
+const controller = new AbortController()
+const { signal } = controller
+
+container.addEventListener("wheel", handleWheel, { signal })
+container.addEventListener("pointerdown", handlePointerDown, { signal })
+container.addEventListener("pointermove", handlePointerMove, { signal })
+// ... more listeners
+
+// Cleanup all listeners at once
+return {
+  cleanup() {
+    controller.abort()  // Removes all listeners
+    store.cleanup()     // Cleanup store subscriptions
+  }
+}
+```
+
+### No UI Components
+
+The core library never creates React components, Vue components, or any framework-specific constructs. It only:
+
+1. Attaches event listeners to DOM elements
+2. Manipulates DOM properties (style, transforms)
+3. Creates simple HTML elements (like zoom lens divs)
+4. Manages state through the store
+
+## Framework Adapters
+
+Framework adapters wrap the core library to provide idiomatic integrations for each framework.
+
+### React Adapter
+
+The React adapter (`@zoom-image/react`) provides hooks that wrap the core functions:
+
+```typescript
+import { createZoomImageWheel } from "@zoom-image/core"
+import { useCallback, useEffect, useRef, useState } from "react"
+
+export function useZoomImageWheel() {
+  const result = useRef<ReturnType<typeof createZoomImageWheel>>()
+  const [zoomImageState, updateZoomImageState] = useState<ZoomImageWheelState>({
+    currentZoom: 1,
+    enable: false,
+    currentPositionX: -1,
+    currentPositionY: -1,
+    currentRotation: 0,
+  })
+
+  const createZoomImage = useCallback((...arg: Parameters<typeof createZoomImageWheel>) => {
+    result.current?.cleanup()
+    result.current = createZoomImageWheel(...arg)  // Call core function
+    updateZoomImageState(result.current.getState())
+
+    // Subscribe and sync to React state
+    result.current.subscribe(({ state }) => {
+      updateZoomImageState(state)
+    })
+  }, [])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      result.current?.cleanup()
+    }
+  }, [])
+
+  return {
+    createZoomImage,
+    zoomImageState,           // React state synced with core
+    setZoomImageState: result.current?.setState,
+  }
+}
+```
+
+### Key Adapter Responsibilities
+
+1. **Lifecycle Management** - Create and cleanup zoom instances at appropriate times
+2. **State Synchronization** - Sync core state with framework reactivity (useState, ref, etc.)
+3. **Idiomatic API** - Provide framework-specific patterns (hooks for React, composables for Vue)
+4. **Memory Safety** - Ensure cleanup on component unmount
+
+### Using React Adapter
+
+```tsx
+import { useZoomImageWheel } from "@zoom-image/react"
+import { useRef } from "react"
+
+function ProductImage() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { createZoomImage, zoomImageState } = useZoomImageWheel()
+
+  useEffect(() => {
+    if (containerRef.current) {
+      createZoomImage(containerRef.current, {
+        maxZoom: 4,
+        wheelZoomRatio: 0.1
+      })
+    }
+  }, [])
+
+  return (
+    <div ref={containerRef}>
+      <img src="/product.jpg" alt="Product" />
+      <p>Zoom: {zoomImageState.currentZoom.toFixed(2)}x</p>
+    </div>
+  )
+}
+```
+
+## Separation of Concerns
+
+The headless architecture creates clear boundaries:
+
+### Core Library Concerns
+
+- Zoom calculations and transforms
+- Pointer and touch event handling
+- Image loading and error states
+- Pan boundary calculations
+- State management
+- Pinch gesture detection
+- Rotation handling
+
+### Framework Adapter Concerns
+
+- Component lifecycle integration
+- Framework state synchronization
+- Type definitions for framework types
+- Hooks/composables/directives
+- SSR compatibility (if needed)
+
+### Developer Concerns
+
+- HTML structure
+- CSS styling and animations
+- Layout and positioning
+- Accessibility features
+- Error handling and loading UI
+- Integration with app state
+
+## Benefits of This Architecture
+
+### 1. Single Source of Truth
+
+Bug fixes and features in the core library automatically benefit all framework integrations:
+
+```typescript
+// Fix pinch gesture calculation in core
+export function computeZoomGesture(
+  prev: [PointerPosition, PointerPosition],
+  curr: [PointerPosition, PointerPosition]
+) {
+  // ... improved calculation
+}
+
+// React, Vue, Angular, Svelte all get the fix
+```
+
+### 2. Framework Flexibility
+
+Switch frameworks without rewriting zoom logic:
+
+```typescript
+// Same zoom behavior in React
+import { useZoomImageWheel } from "@zoom-image/react"
+
+// Same zoom behavior in Vue
+import { useZoomImageWheel } from "@zoom-image/vue"
+
+// Same zoom behavior in vanilla JS
+import { createZoomImageWheel } from "@zoom-image/core"
+```
+
+### 3. Testability
+
+Test zoom logic without framework testing utilities:
+
+```typescript
+import { createZoomImageWheel } from "@zoom-image/core"
+import { describe, it, expect } from "vitest"
+
+describe("createZoomImageWheel", () => {
+  it("should zoom on wheel event", () => {
+    const container = document.createElement("div")
+    const img = document.createElement("img")
+    container.appendChild(img)
+
+    const zoom = createZoomImageWheel(container, { maxZoom: 4 })
+    
+    // Dispatch wheel event
+    container.dispatchEvent(new WheelEvent("wheel", { deltaY: -100 }))
+    
+    // Assert zoom state changed
+    expect(zoom.getState().currentZoom).toBeGreaterThan(1)
+    
+    zoom.cleanup()
+  })
+})
+```
+
+### 4. Bundle Size Optimization
+
+Only ship the code you need:
+
+```typescript
+// React app - only include React adapter + core
+import { useZoomImageWheel } from "@zoom-image/react"  // ~8KB
+
+// Vanilla JS - only include core
+import { createZoomImageWheel } from "@zoom-image/core"  // ~6KB
+```
+
+### 5. Progressive Enhancement
+
+Start with vanilla JS, add framework integration later:
+
+```typescript
+// Phase 1: Vanilla implementation
+const zoom = createZoomImageWheel(element, options)
+
+// Phase 2: Migrate to React (same options, same behavior)
+const { createZoomImage } = useZoomImageWheel()
+createZoomImage(element, options)
+```
+
+## Core Dependencies
+
+The core library has only one dependency:
+
+```json
+{
+  "dependencies": {
+    "@namnode/store": "^0.1.0"
+  }
+}
+```
+
+This minimal dependency footprint ensures:
+- Small bundle size
+- Fewer security vulnerabilities
+- Easier maintenance
+- Faster installation
+
+## Building Your Own Adapter
+
+You can create adapters for any framework by following this pattern:
+
+```typescript
+import { createZoomImageWheel } from "@zoom-image/core"
+import type { ZoomImageWheelState, ZoomImageWheelOptions } from "@zoom-image/core"
+
+export function createFrameworkAdapter() {
+  let instance: ReturnType<typeof createZoomImageWheel> | null = null
+  
+  function initialize(
+    element: HTMLElement,
+    options: ZoomImageWheelOptions
+  ) {
+    // Cleanup previous instance
+    instance?.cleanup()
+    
+    // Create new instance
+    instance = createZoomImageWheel(element, options)
+    
+    // Subscribe and sync to framework state system
+    instance.subscribe(({ state }) => {
+      // Update framework-specific state
+    })
+  }
+  
+  function destroy() {
+    instance?.cleanup()
+    instance = null
+  }
+  
+  return { initialize, destroy, getState: () => instance?.getState() }
+}
+```
+
+<Note>
+The headless pattern gives you complete control over styling, layout, and behavior while providing battle-tested zoom logic.
+</Note>
+
+<Tip>
+When building custom integrations, always remember to call `cleanup()` when your component unmounts to prevent memory leaks.
+</Tip>

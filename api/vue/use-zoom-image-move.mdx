@@ -1,0 +1,334 @@
+---
+title: useZoomImageMove
+description: Vue composable for move-triggered image zooming with cursor following
+---
+
+## Overview
+
+The `useZoomImageMove` composable provides move-based image zoom functionality where the zoomed image follows the cursor or touch position within the container. This creates an intuitive magnification effect that tracks mouse or touch movement.
+
+## Signature
+
+```typescript
+function useZoomImageMove(): {
+  createZoomImage: (
+    container: HTMLElement,
+    options?: ZoomImageMoveOptions
+  ) => void
+  zoomImageState: ZoomImageMoveState
+}
+```
+
+## Return Value
+
+<ResponseField name="createZoomImage" type="function" required>
+  Initializes the move zoom functionality on the specified container element.
+  
+  <ParamField name="container" type="HTMLElement" required>
+    The container element that wraps the image to be zoomed
+  </ParamField>
+  
+  <ParamField name="options" type="ZoomImageMoveOptions">
+    Configuration options for the move zoom behavior
+    
+    <ParamField name="zoomFactor" type="number" default="4">
+      The zoom magnification factor (4 = 400% zoom)
+    </ParamField>
+    
+    <ParamField name="zoomImageSource" type="string">
+      URL of the high-resolution image to display when zoomed. Defaults to the source image's `src`
+    </ParamField>
+    
+    <ParamField name="disableScrollLock" type="boolean" default="false">
+      **Deprecated.** If `true`, allows page scrolling while interacting with the zoomed image
+    </ParamField>
+    
+    <ParamField name="disabledContextMenu" type="boolean" default="false">
+      If `true`, disables the context menu on the zoomed image (useful for mobile to prevent save-image dialogs)
+    </ParamField>
+    
+    <ParamField name="zoomImageProps" type="object">
+      Additional props for the zoomed image element
+      
+      <ParamField name="alt" type="string">
+        Alt text for the zoomed image
+      </ParamField>
+      
+      <ParamField name="className" type="string">
+        CSS class name(s) for the zoomed image element
+      </ParamField>
+    </ParamField>
+  </ParamField>
+</ResponseField>
+
+<ResponseField name="zoomImageState" type="ZoomImageMoveState" required>
+  Reactive state object containing current zoom properties
+  
+  <ResponseField name="zoomedImgStatus" type="'idle' | 'loading' | 'loaded' | 'error'">
+    Loading status of the zoomed image
+  </ResponseField>
+</ResponseField>
+
+## Examples
+
+### Basic Usage
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useZoomImageMove } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const { createZoomImage } = useZoomImageMove()
+
+onMounted(() => {
+  if (imageContainerRef.value) {
+    createZoomImage(imageContainerRef.value, {
+      zoomImageSource: '/high-res-image.jpg'
+    })
+  }
+})
+</script>
+
+<template>
+  <div>
+    <p>Move mouse inside the image to see zoom effect</p>
+    
+    <div 
+      ref="imageContainerRef" 
+      class="relative h-[300px] w-[200px] cursor-crosshair overflow-hidden"
+    >
+      <img src="/sample.jpg" alt="Zoomable image" class="h-full w-full" />
+    </div>
+  </div>
+</template>
+```
+
+### With Custom Zoom Factor
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useZoomImageMove } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const { createZoomImage } = useZoomImageMove()
+
+onMounted(() => {
+  if (imageContainerRef.value) {
+    createZoomImage(imageContainerRef.value, {
+      zoomImageSource: '/high-res-image.jpg',
+      zoomFactor: 6
+    })
+  }
+})
+</script>
+
+<template>
+  <div 
+    ref="imageContainerRef" 
+    class="relative h-[300px] w-[200px] cursor-crosshair overflow-hidden"
+  >
+    <img src="/sample.jpg" alt="Zoomable image" class="h-full w-full" />
+  </div>
+</template>
+```
+
+### With State Monitoring
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useZoomImageMove } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const { createZoomImage, zoomImageState } = useZoomImageMove()
+
+onMounted(() => {
+  if (imageContainerRef.value) {
+    createZoomImage(imageContainerRef.value, {
+      zoomImageSource: '/high-res-image.jpg'
+    })
+  }
+})
+</script>
+
+<template>
+  <div>
+    <p>Status: {{ zoomImageState.zoomedImgStatus }}</p>
+    
+    <div 
+      ref="imageContainerRef" 
+      class="relative h-[300px] w-[200px] cursor-crosshair overflow-hidden"
+    >
+      <img src="/sample.jpg" alt="Zoomable image" class="h-full w-full" />
+      
+      <div 
+        v-if="zoomImageState.zoomedImgStatus === 'loading'"
+        class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white"
+      >
+        Loading high-res image...
+      </div>
+    </div>
+  </div>
+</template>
+```
+
+### Mobile-Optimized with Context Menu Disabled
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useZoomImageMove } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const { createZoomImage } = useZoomImageMove()
+
+onMounted(() => {
+  if (imageContainerRef.value) {
+    createZoomImage(imageContainerRef.value, {
+      zoomImageSource: '/high-res-image.jpg',
+      zoomFactor: 3,
+      disabledContextMenu: true,
+      zoomImageProps: {
+        alt: 'Zoomed product image',
+        className: 'touch-none'
+      }
+    })
+  }
+})
+</script>
+
+<template>
+  <div 
+    ref="imageContainerRef" 
+    class="relative h-[300px] w-[200px] cursor-crosshair overflow-hidden touch-none"
+  >
+    <img src="/sample.jpg" alt="Product" class="h-full w-full" />
+  </div>
+</template>
+```
+
+### Dynamic Image Source
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted, watch } from 'vue'
+import { useZoomImageMove } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const currentImage = ref('/image-1.jpg')
+const { createZoomImage } = useZoomImageMove()
+
+const images = [
+  { thumb: '/image-1.jpg', full: '/image-1-full.jpg' },
+  { thumb: '/image-2.jpg', full: '/image-2-full.jpg' },
+  { thumb: '/image-3.jpg', full: '/image-3-full.jpg' }
+]
+
+const selectImage = (image: typeof images[0]) => {
+  currentImage.value = image.thumb
+  
+  if (imageContainerRef.value) {
+    createZoomImage(imageContainerRef.value, {
+      zoomImageSource: image.full,
+      zoomFactor: 4
+    })
+  }
+}
+
+onMounted(() => {
+  if (imageContainerRef.value) {
+    createZoomImage(imageContainerRef.value, {
+      zoomImageSource: images[0].full
+    })
+  }
+})
+</script>
+
+<template>
+  <div>
+    <div class="flex gap-2 mb-4">
+      <button 
+        v-for="(image, idx) in images" 
+        :key="idx"
+        @click="selectImage(image)"
+        class="px-3 py-1 bg-gray-100 rounded"
+      >
+        Image {{ idx + 1 }}
+      </button>
+    </div>
+    
+    <div 
+      ref="imageContainerRef" 
+      class="relative h-[300px] w-[200px] cursor-crosshair overflow-hidden"
+    >
+      <img :src="currentImage" alt="Product" class="h-full w-full" />
+    </div>
+  </div>
+</template>
+```
+
+### Options API Example
+
+```vue
+<script lang="ts">
+import { defineComponent } from 'vue'
+import { useZoomImageMove } from '@zoom-image/vue'
+
+export default defineComponent({
+  setup() {
+    return useZoomImageMove()
+  },
+  mounted() {
+    const container = this.$refs.imageContainer as HTMLDivElement
+    
+    if (container) {
+      this.createZoomImage(container, {
+        zoomImageSource: '/high-res-image.jpg',
+        zoomFactor: 5
+      })
+    }
+  }
+})
+</script>
+
+<template>
+  <div 
+    ref="imageContainer" 
+    class="relative h-[300px] w-[200px] cursor-crosshair overflow-hidden"
+  >
+    <img src="/sample.jpg" alt="Product" class="h-full w-full" />
+  </div>
+</template>
+```
+
+## Cleanup
+
+The composable automatically cleans up event listeners, DOM elements, and resources when the component is unmounted using Vue's `onUnmounted` hook. If you need to reinitialize the zoom on the same container, simply call `createZoomImage` again - it will automatically clean up the previous instance.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useZoomImageMove } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const { createZoomImage } = useZoomImageMove()
+
+const changeZoomFactor = (factor: number) => {
+  if (imageContainerRef.value) {
+    // Previous instance is automatically cleaned up
+    createZoomImage(imageContainerRef.value, {
+      zoomFactor: factor
+    })
+  }
+}
+</script>
+```
+
+## See Also
+
+- [createZoomImageMove](/api/create-zoom-image-move) - Core API documentation
+- [useZoomImageWheel](/api/vue/use-zoom-image-wheel) - Wheel-based zoom composable
+- [useZoomImageHover](/api/vue/use-zoom-image-hover) - Hover-based zoom composable
+- [useZoomImageClick](/api/vue/use-zoom-image-click) - Click-based zoom composable

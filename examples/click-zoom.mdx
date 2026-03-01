@@ -1,0 +1,455 @@
+---
+title: Click Zoom Example
+description: Toggle between zoomed and normal states with click interactions
+---
+
+Click zoom allows users to toggle between a normal and zoomed view by clicking on the image. This interaction pattern is particularly well-suited for mobile devices and provides a simple, intuitive way to examine image details.
+
+## Features
+
+- Click to toggle between zoomed and normal states
+- Smooth zoom transitions
+- Touch-friendly for mobile devices
+- High-resolution image support
+- Customizable scale and zoom behavior
+
+## Vanilla JavaScript
+
+<Tabs>
+  <Tab title="HTML">
+    ```html
+    <div id="image-click-container" class="relative h-[300px] w-[200px] cursor-pointer overflow-hidden">
+      <img src="/sample.avif" alt="Click to zoom" />
+    </div>
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    import { createZoomImageClick } from "@zoom-image/core";
+
+    const container = document.getElementById("image-click-container");
+
+    const result = createZoomImageClick(container, {
+      zoomImageSource: "/sample.avif",
+    });
+
+    // Cleanup when done
+    // result.cleanup();
+    ```
+  </Tab>
+</Tabs>
+
+## React
+
+```tsx
+import { useZoomImageClick } from "@zoom-image/react";
+import { useEffect, useRef } from "react";
+
+function ClickZoomExample() {
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+
+  const { createZoomImage } = useZoomImageClick();
+
+  useEffect(() => {
+    if (imageContainerRef.current) {
+      createZoomImage(imageContainerRef.current, {
+        zoomImageSource: "/sample.avif",
+      });
+    }
+  }, [createZoomImage]);
+
+  return (
+    <div>
+      <p>Click inside the image to toggle zoom effect</p>
+      <div
+        ref={imageContainerRef}
+        className="relative h-[300px] w-[200px] cursor-pointer overflow-hidden"
+      >
+        <img
+          className="h-full w-full"
+          alt="Clickable Pic"
+          src="/sample.avif"
+        />
+      </div>
+    </div>
+  );
+}
+
+export default ClickZoomExample;
+```
+
+## Vue
+
+```vue
+<script setup lang="ts">
+import { useZoomImageClick } from "@zoom-image/vue";
+import { onMounted, ref } from "vue";
+
+const imageContainerRef = ref<HTMLDivElement>();
+
+const { createZoomImage } = useZoomImageClick();
+
+onMounted(() => {
+  createZoomImage(imageContainerRef.value as HTMLDivElement, {
+    zoomImageSource: "/sample.avif",
+  });
+});
+</script>
+
+<template>
+  <div>
+    <p>Click inside the image to toggle zoom effect</p>
+    <div
+      ref="imageContainerRef"
+      class="relative h-[300px] w-[200px] cursor-pointer overflow-hidden"
+    >
+      <img class="h-full w-full" alt="Large Pic" src="/sample.avif" />
+    </div>
+  </div>
+</template>
+```
+
+## Svelte
+
+```svelte
+<script lang="ts">
+  import { useZoomImageClick } from "@zoom-image/svelte";
+  import { onMount } from "svelte";
+
+  let imageContainer: HTMLDivElement;
+
+  let { createZoomImage } = useZoomImageClick();
+
+  onMount(() => {
+    createZoomImage(imageContainer, {
+      zoomImageSource: "/sample.avif",
+    });
+  });
+</script>
+
+<div>
+  <p>Click inside the image to toggle zoom effect</p>
+  <div
+    bind:this={imageContainer}
+    class="relative h-[300px] w-[200px] cursor-pointer overflow-hidden"
+  >
+    <img class="h-full w-full" alt="Large Pic" src="/sample.avif" />
+  </div>
+</div>
+```
+
+## Angular
+
+```typescript
+import { AfterViewInit, Component, ElementRef, ViewChild } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { ZoomImageClickService } from "@zoom-image/angular";
+
+@Component({
+  selector: "app-click-zoom",
+  templateUrl: "./click-zoom.component.html",
+  providers: [ZoomImageClickService],
+  imports: [CommonModule],
+})
+export class ClickZoomComponent implements AfterViewInit {
+  @ViewChild("imageContainer") imageContainerRef?: ElementRef<HTMLDivElement>;
+
+  constructor(private zoomService: ZoomImageClickService) {}
+
+  ngAfterViewInit(): void {
+    if (this.imageContainerRef) {
+      this.zoomService.createZoomImage(
+        this.imageContainerRef.nativeElement,
+        {
+          zoomImageSource: "sample.avif",
+        }
+      );
+    }
+  }
+}
+```
+
+```html
+<!-- click-zoom.component.html -->
+<div>
+  <p>Click inside the image to toggle zoom effect</p>
+  <div
+    #imageContainer
+    class="relative h-[300px] w-[200px] cursor-pointer overflow-hidden"
+  >
+    <img class="h-full w-full" alt="Large Pic" src="sample.avif" />
+  </div>
+</div>
+```
+
+## Next.js (App Router)
+
+```tsx
+"use client";
+
+import { useZoomImageClick } from "@zoom-image/react";
+import { useEffect, useRef } from "react";
+
+export default function ClickZoomPage() {
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const { createZoomImage } = useZoomImageClick();
+
+  useEffect(() => {
+    if (imageContainerRef.current) {
+      createZoomImage(imageContainerRef.current, {
+        zoomImageSource: "/sample.avif",
+      });
+    }
+  }, [createZoomImage]);
+
+  return (
+    <div>
+      <p>Click inside the image to toggle zoom effect</p>
+      <div
+        ref={imageContainerRef}
+        className="relative h-[300px] w-[200px] cursor-pointer overflow-hidden"
+      >
+        <img className="h-full w-full" alt="Large Pic" src="/sample.avif" />
+      </div>
+    </div>
+  );
+}
+```
+
+## Key Configuration Options
+
+### zoomImageSource (Required)
+Specifies the high-resolution image to display when zoomed.
+
+```javascript
+const result = createZoomImageClick(container, {
+  zoomImageSource: "/high-res-image.jpg",
+});
+```
+
+### scale
+Sets the magnification level (default: 2).
+
+```javascript
+const result = createZoomImageClick(container, {
+  zoomImageSource: "/image.jpg",
+  scale: 3, // 3x magnification
+});
+```
+
+### scaleFactor
+Provides custom zoom calculation logic.
+
+```javascript
+const result = createZoomImageClick(container, {
+  zoomImageSource: "/image.jpg",
+  scaleFactor: (container, zoom) => {
+    return {
+      x: container.offsetWidth / zoom.offsetWidth,
+      y: container.offsetHeight / zoom.offsetHeight,
+    };
+  },
+});
+```
+
+### zoomTarget
+Optional target element for displaying the zoomed view. If not provided, the zoom appears over the source image.
+
+```javascript
+const zoomTarget = document.getElementById("zoom-container");
+
+const result = createZoomImageClick(container, {
+  zoomImageSource: "/image.jpg",
+  zoomTarget,
+});
+```
+
+## Styling
+
+### Container Styles
+The container should have `overflow: hidden` to prevent the zoomed image from extending beyond boundaries.
+
+```css
+.zoom-container {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+```
+
+### Zoom State Indicator
+Provide visual feedback to indicate the image is clickable.
+
+```css
+.zoom-container {
+  cursor: zoom-in;
+}
+
+.zoom-container.zoomed {
+  cursor: zoom-out;
+}
+```
+
+### Smooth Transitions
+Add smooth zoom transitions.
+
+```css
+.zoom-container img {
+  transition: transform 0.3s ease-in-out;
+}
+```
+
+## Common Use Cases
+
+### Mobile Product Gallery
+Provide a touch-friendly way to examine product details on mobile devices.
+
+```javascript
+const result = createZoomImageClick(container, {
+  zoomImageSource: "/products/high-res-image.jpg",
+  scale: 2.5,
+});
+```
+
+### Lightbox Alternative
+Create a simple image viewer without needing a full lightbox implementation.
+
+### Image Comparison
+Allow users to toggle between normal and detailed views for before/after comparisons.
+
+### Blog Post Images
+Enable readers to zoom into infographics, diagrams, or detailed illustrations.
+
+### Mobile-First Design
+Provide an optimal zoom experience on touch devices where hover interactions aren't available.
+
+## Mobile Optimization
+
+### Touch Events
+Click zoom automatically handles touch events, making it ideal for mobile devices:
+
+```javascript
+const result = createZoomImageClick(container, {
+  zoomImageSource: "/image.jpg",
+  // Touch events are handled automatically
+});
+```
+
+### Viewport Considerations
+Ensure the zoomed image fits within the viewport on mobile devices:
+
+```javascript
+const scale = Math.min(
+  window.innerWidth / container.offsetWidth,
+  window.innerHeight / container.offsetHeight
+);
+
+const result = createZoomImageClick(container, {
+  zoomImageSource: "/image.jpg",
+  scale: Math.min(scale, 3), // Limit maximum scale
+});
+```
+
+## Programmatic Control
+
+You can programmatically trigger zoom state changes:
+
+```javascript
+const result = createZoomImageClick(container, {
+  zoomImageSource: "/image.jpg",
+});
+
+// Subscribe to state changes
+result.subscribe(({ state }) => {
+  console.log("Is zoomed:", state.isZoomed);
+});
+
+// Programmatically toggle zoom
+const currentState = result.getState();
+result.setState({ isZoomed: !currentState.isZoomed });
+```
+
+## Accessibility
+
+### ARIA Labels
+Provide clear instructions for screen reader users:
+
+```html
+<div
+  id="image-click-container"
+  role="button"
+  tabindex="0"
+  aria-label="Click to zoom image. Click again to zoom out."
+  class="relative h-[300px] w-[200px] cursor-pointer overflow-hidden"
+>
+  <img src="/sample.avif" alt="Product photo" />
+</div>
+```
+
+### Keyboard Support
+Add keyboard support for accessibility:
+
+```javascript
+container.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    container.click(); // Trigger zoom toggle
+  }
+});
+```
+
+### Focus Management
+```css
+.zoom-container:focus {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+```
+
+## Multiple Images
+
+Implement click zoom for multiple images:
+
+```javascript
+const images = document.querySelectorAll(".zoomable-image");
+
+images.forEach((container) => {
+  const imageSource = container.querySelector("img").src;
+  createZoomImageClick(container, {
+    zoomImageSource: imageSource,
+  });
+});
+```
+
+## State Management
+
+Track zoom state across multiple images:
+
+```javascript
+let currentlyZoomed = null;
+
+const images = document.querySelectorAll(".zoomable-image");
+
+images.forEach((container) => {
+  const result = createZoomImageClick(container, {
+    zoomImageSource: container.querySelector("img").src,
+  });
+
+  result.subscribe(({ state }) => {
+    if (state.isZoomed) {
+      // Close other zoomed images
+      if (currentlyZoomed && currentlyZoomed !== result) {
+        currentlyZoomed.setState({ isZoomed: false });
+      }
+      currentlyZoomed = result;
+    }
+  });
+});
+```
+
+## Related
+
+- [API Reference: createZoomImageClick](/api/create-zoom-image-click)
+- [Click Zoom Options Type](/api/types/zoom-image-click-options)
+- [React Hook: useZoomImageClick](/api/react/use-zoom-image-click)
+- [Vue Composable: useZoomImageClick](/api/vue/use-zoom-image-click)

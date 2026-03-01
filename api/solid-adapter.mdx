@@ -1,0 +1,431 @@
+---
+title: "Solid Adapter"
+description: "Solid.js hooks for zoom image functionality with reactive stores"
+---
+
+The Solid adapter provides reactive hooks for implementing zoom image functionality in Solid.js applications using Solid's store system.
+
+## Installation
+
+```bash
+npm install @zoom-image/solid
+```
+
+## Available Hooks
+
+The Solid adapter exports four hooks that correspond to different zoom behaviors:
+
+- `useZoomImageWheel` - Zoom with mouse wheel
+- `useZoomImageHover` - Zoom on hover with separate zoom target
+- `useZoomImageMove` - Zoom on mouse move
+- `useZoomImageClick` - Zoom on click
+
+## useZoomImageWheel
+
+Enables zooming with mouse wheel/trackpad scrolling.
+
+### API
+
+```typescript
+function useZoomImageWheel(): {
+  createZoomImage: (...args: Parameters<typeof createZoomImageWheel>) => void
+  zoomImageState: ZoomImageWheelState
+  setZoomImageState: (state: ZoomImageWheelStateUpdate) => void
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageWheelState {
+  currentZoom: number
+  enable: boolean
+  currentPositionX: number
+  currentPositionY: number
+  currentRotation: number
+}
+```
+
+### Example
+
+```tsx
+import { onMount } from "solid-js"
+import { useZoomImageWheel } from "@zoom-image/solid"
+
+function ZoomWheel() {
+  let imageContainer: HTMLDivElement
+  
+  const {
+    createZoomImage,
+    zoomImageState,
+    setZoomImageState
+  } = useZoomImageWheel()
+  
+  onMount(() => {
+    createZoomImage(imageContainer)
+  })
+  
+  function zoomIn() {
+    setZoomImageState({
+      currentZoom: zoomImageState.currentZoom + 0.5
+    })
+  }
+  
+  function zoomOut() {
+    setZoomImageState({
+      currentZoom: zoomImageState.currentZoom - 0.5
+    })
+  }
+  
+  function rotate() {
+    setZoomImageState({
+      currentRotation: zoomImageState.currentRotation + 90
+    })
+  }
+  
+  return (
+    <div>
+      <p>Current zoom: {Math.round(zoomImageState.currentZoom * 100)}%</p>
+      <p>Scroll inside the image to zoom</p>
+      
+      <div ref={imageContainer} class="h-[300px] w-[200px]">
+        <img src="/image.jpg" alt="Zoomable image" class="h-full w-full" />
+      </div>
+      
+      <div class="flex gap-2">
+        <button onClick={zoomIn}>Zoom In</button>
+        <button onClick={zoomOut}>Zoom Out</button>
+        <button onClick={rotate}>Rotate</button>
+      </div>
+    </div>
+  )
+}
+```
+
+## useZoomImageHover
+
+Displays a zoomed version in a separate container when hovering over the image.
+
+### API
+
+```typescript
+function useZoomImageHover(): {
+  createZoomImage: (...args: Parameters<typeof createZoomImageHover>) => void
+  zoomImageState: ZoomImageHoverState
+  setZoomImageState: (state: ZoomImageHoverStateUpdate) => void
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageHoverState {
+  enabled: boolean
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```tsx
+import { onMount } from "solid-js"
+import { useZoomImageHover } from "@zoom-image/solid"
+
+function ZoomHover() {
+  let imageContainer: HTMLDivElement
+  let zoomTarget: HTMLDivElement
+  
+  const { createZoomImage, zoomImageState } = useZoomImageHover()
+  
+  onMount(() => {
+    createZoomImage(imageContainer, {
+      zoomImageSource: "/image-large.jpg",
+      customZoom: { width: 400, height: 600 },
+      zoomTarget,
+      scale: 2
+    })
+  })
+  
+  return (
+    <div class="flex gap-4">
+      <div ref={imageContainer} class="relative h-[300px] w-[200px]">
+        <img src="/image-small.jpg" alt="Hover to zoom" class="h-full w-full" />
+      </div>
+      
+      <div ref={zoomTarget} class="absolute left-[250px]"></div>
+    </div>
+  )
+}
+```
+
+## useZoomImageMove
+
+Zooms the image as the mouse moves over it.
+
+### API
+
+```typescript
+function useZoomImageMove(): {
+  createZoomImage: (...args: Parameters<typeof createZoomImageMove>) => void
+  zoomImageState: ZoomImageMoveState
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageMoveState {
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```tsx
+import { onMount } from "solid-js"
+import { useZoomImageMove } from "@zoom-image/solid"
+
+function ZoomMove() {
+  let imageContainer: HTMLDivElement
+  
+  const { createZoomImage, zoomImageState } = useZoomImageMove()
+  
+  onMount(() => {
+    createZoomImage(imageContainer, {
+      zoomImageSource: "/image-large.jpg"
+    })
+  })
+  
+  return (
+    <div ref={imageContainer} class="relative h-[300px] w-[200px] overflow-hidden">
+      <img src="/image.jpg" alt="Move mouse to zoom" class="h-full w-full" />
+    </div>
+  )
+}
+```
+
+## useZoomImageClick
+
+Toggles zoom when clicking on the image.
+
+### API
+
+```typescript
+function useZoomImageClick(): {
+  createZoomImage: (...args: Parameters<typeof createZoomImageClick>) => void
+  zoomImageState: ZoomImageClickState
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageClickState {
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```tsx
+import { onMount } from "solid-js"
+import { useZoomImageClick } from "@zoom-image/solid"
+
+function ZoomClick() {
+  let imageContainer: HTMLDivElement
+  
+  const { createZoomImage, zoomImageState } = useZoomImageClick()
+  
+  onMount(() => {
+    createZoomImage(imageContainer, {
+      zoomImageSource: "/image-large.jpg"
+    })
+  })
+  
+  return (
+    <div ref={imageContainer} class="relative h-[300px] w-[200px] overflow-hidden cursor-pointer">
+      <img src="/image.jpg" alt="Click to zoom" class="h-full w-full" />
+    </div>
+  )
+}
+```
+
+## Cleanup
+
+All hooks automatically handle cleanup when the component unmounts using Solid's `onCleanup` lifecycle hook. The cleanup removes event listeners and frees resources.
+
+```tsx
+import { onCleanup } from "solid-js"
+
+// Cleanup is automatic within the hook
+onCleanup(() => {
+  // Resources are freed automatically
+})
+```
+
+## Reactive State
+
+The `zoomImageState` returned by each hook is a Solid store, making it fully reactive. You can access its properties directly in your JSX and they will automatically update:
+
+```tsx
+function ZoomComponent() {
+  const { zoomImageState, createZoomImage } = useZoomImageWheel()
+  
+  // Direct access to reactive properties
+  return (
+    <div>
+      <p>Zoom: {zoomImageState.currentZoom}</p>
+      <p>Position X: {zoomImageState.currentPositionX}</p>
+      <p>Position Y: {zoomImageState.currentPositionY}</p>
+      <p>Rotation: {zoomImageState.currentRotation}°</p>
+    </div>
+  )
+}
+```
+
+## Combining Multiple Zoom Types
+
+You can combine multiple zoom behaviors in a single component:
+
+```tsx
+import { createSignal, createMemo, onMount, For } from "solid-js"
+import {
+  useZoomImageWheel,
+  useZoomImageHover,
+  useZoomImageMove,
+  useZoomImageClick
+} from "@zoom-image/solid"
+
+type Tab = {
+  name: string
+  current: boolean
+  value: "wheel" | "hover" | "move" | "click"
+}
+
+function MultiZoom() {
+  const [tabs, setTabs] = createSignal<Tab[]>([
+    { name: "Wheel", current: true, value: "wheel" },
+    { name: "Hover", current: false, value: "hover" },
+    { name: "Move", current: false, value: "move" },
+    { name: "Click", current: false, value: "click" }
+  ])
+  
+  const zoomType = createMemo(() => tabs().find(tab => tab.current)!.value)
+  
+  let imageWheelContainer: HTMLDivElement
+  let imageHoverContainer: HTMLDivElement
+  let imageMoveContainer: HTMLDivElement
+  let imageClickContainer: HTMLDivElement
+  let zoomTarget: HTMLDivElement
+  
+  const { createZoomImage: createZoomImageWheel } = useZoomImageWheel()
+  const { createZoomImage: createZoomImageHover } = useZoomImageHover()
+  const { createZoomImage: createZoomImageMove } = useZoomImageMove()
+  const { createZoomImage: createZoomImageClick } = useZoomImageClick()
+  
+  const processZoom = (type: Tab["value"]) => {
+    if (type === "wheel") {
+      createZoomImageWheel(imageWheelContainer)
+    }
+    
+    if (type === "hover") {
+      createZoomImageHover(imageHoverContainer, {
+        zoomImageSource: "/image-large.jpg",
+        customZoom: { width: 300, height: 500 },
+        zoomTarget,
+        scale: 2
+      })
+    }
+    
+    if (type === "move") {
+      createZoomImageMove(imageMoveContainer, {
+        zoomImageSource: "/image-large.jpg"
+      })
+    }
+    
+    if (type === "click") {
+      createZoomImageClick(imageClickContainer, {
+        zoomImageSource: "/image-large.jpg"
+      })
+    }
+  }
+  
+  onMount(() => processZoom(zoomType()))
+  
+  const handleTabClick = (tab: Tab) => {
+    setTabs(tabs().map(t => ({
+      ...t,
+      current: t.name === tab.name
+    })))
+    processZoom(tab.value)
+  }
+  
+  return (
+    <div>
+      <nav class="flex gap-4 mb-4">
+        <For each={tabs()}>
+          {(tab) => (
+            <button
+              onClick={() => handleTabClick(tab)}
+              class={tab.current ? "active" : ""}
+            >
+              {tab.name}
+            </button>
+          )}
+        </For>
+      </nav>
+      
+      {zoomType() === "wheel" && (
+        <div ref={imageWheelContainer} class="h-[300px] w-[200px]">
+          <img src="/image.jpg" alt="Wheel zoom" class="h-full w-full" />
+        </div>
+      )}
+      
+      {zoomType() === "hover" && (
+        <div class="flex gap-4">
+          <div ref={imageHoverContainer} class="h-[300px] w-[200px]">
+            <img src="/image.jpg" alt="Hover zoom" class="h-full w-full" />
+          </div>
+          <div ref={zoomTarget}></div>
+        </div>
+      )}
+      
+      {zoomType() === "move" && (
+        <div ref={imageMoveContainer} class="h-[300px] w-[200px] overflow-hidden">
+          <img src="/image.jpg" alt="Move zoom" class="h-full w-full" />
+        </div>
+      )}
+      
+      {zoomType() === "click" && (
+        <div ref={imageClickContainer} class="h-[300px] w-[200px] overflow-hidden">
+          <img src="/image.jpg" alt="Click zoom" class="h-full w-full" />
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+## TypeScript Support
+
+The Solid adapter is written in TypeScript and provides full type definitions. Import types from `@zoom-image/core`:
+
+```typescript
+import type {
+  ZoomImageWheelState,
+  ZoomImageWheelStateUpdate,
+  ZoomImageHoverState,
+  ZoomImageHoverStateUpdate,
+  ZoomImageMoveState,
+  ZoomImageClickState
+} from "@zoom-image/core"
+```
+
+## Related
+
+- [createZoomImageWheel](/api/create-zoom-image-wheel) - Core wheel zoom function
+- [createZoomImageHover](/api/create-zoom-image-hover) - Core hover zoom function
+- [createZoomImageMove](/api/create-zoom-image-move) - Core move zoom function
+- [createZoomImageClick](/api/create-zoom-image-click) - Core click zoom function
+- [React Adapter](/adapters/react) - React implementation
+- [Vue Adapter](/adapters/vue) - Vue implementation

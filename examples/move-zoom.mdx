@@ -1,0 +1,391 @@
+---
+title: Move Zoom Example
+description: Pan around a zoomed image by moving the cursor
+---
+
+Move zoom displays a magnified version of the image that follows the cursor position. This interaction pattern is ideal for detailed image inspection and provides an intuitive way to explore high-resolution images.
+
+## Features
+
+- Magnified view follows cursor movement
+- Smooth panning across the entire image
+- High-resolution image support
+- Customizable scale and zoom behavior
+- Works with both mouse and touch input
+
+## Vanilla JavaScript
+
+<Tabs>
+  <Tab title="HTML">
+    ```html
+    <div id="image-move-container" class="relative h-[300px] w-[200px] cursor-crosshair overflow-hidden">
+      <img src="/sample.avif" alt="Move to zoom" />
+    </div>
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    import { createZoomImageMove } from "@zoom-image/core";
+
+    const container = document.getElementById("image-move-container");
+
+    const result = createZoomImageMove(container, {
+      zoomImageSource: "/sample.avif",
+    });
+
+    // Cleanup when done
+    // result.cleanup();
+    ```
+  </Tab>
+</Tabs>
+
+## React
+
+```tsx
+import { useZoomImageMove } from "@zoom-image/react";
+import { useEffect, useRef } from "react";
+
+function MoveZoomExample() {
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+
+  const { createZoomImage } = useZoomImageMove();
+
+  useEffect(() => {
+    if (imageContainerRef.current) {
+      createZoomImage(imageContainerRef.current, {
+        zoomImageSource: "/sample.avif",
+      });
+    }
+  }, [createZoomImage]);
+
+  return (
+    <div>
+      <p>Move mouse inside the image to see zoom effect</p>
+      <div
+        ref={imageContainerRef}
+        className="relative h-[300px] w-[200px] cursor-crosshair overflow-hidden"
+      >
+        <img
+          className="h-full w-full"
+          alt="Large Pic"
+          src="/sample.avif"
+        />
+      </div>
+    </div>
+  );
+}
+
+export default MoveZoomExample;
+```
+
+## Vue
+
+```vue
+<script setup lang="ts">
+import { useZoomImageMove } from "@zoom-image/vue";
+import { onMounted, ref } from "vue";
+
+const imageContainerRef = ref<HTMLDivElement>();
+
+const { createZoomImage } = useZoomImageMove();
+
+onMounted(() => {
+  createZoomImage(imageContainerRef.value as HTMLDivElement, {
+    zoomImageSource: "/sample.avif",
+  });
+});
+</script>
+
+<template>
+  <div>
+    <p>Move mouse inside the image to see zoom effect</p>
+    <div
+      ref="imageContainerRef"
+      class="relative h-[300px] w-[200px] cursor-crosshair overflow-hidden"
+    >
+      <img class="h-full w-full" alt="Large Pic" src="/sample.avif" />
+    </div>
+  </div>
+</template>
+```
+
+## Svelte
+
+```svelte
+<script lang="ts">
+  import { useZoomImageMove } from "@zoom-image/svelte";
+  import { onMount } from "svelte";
+
+  let imageContainer: HTMLDivElement;
+
+  let { createZoomImage } = useZoomImageMove();
+
+  onMount(() => {
+    createZoomImage(imageContainer, {
+      zoomImageSource: "/sample.avif",
+    });
+  });
+</script>
+
+<div>
+  <p>Move mouse inside the image to see zoom effect</p>
+  <div
+    bind:this={imageContainer}
+    class="relative h-[300px] w-[200px] cursor-crosshair overflow-hidden"
+  >
+    <img class="h-full w-full" alt="Large Pic" src="/sample.avif" />
+  </div>
+</div>
+```
+
+## Angular
+
+```typescript
+import { AfterViewInit, Component, ElementRef, ViewChild } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { ZoomImageMoveService } from "@zoom-image/angular";
+
+@Component({
+  selector: "app-move-zoom",
+  templateUrl: "./move-zoom.component.html",
+  providers: [ZoomImageMoveService],
+  imports: [CommonModule],
+})
+export class MoveZoomComponent implements AfterViewInit {
+  @ViewChild("imageContainer") imageContainerRef?: ElementRef<HTMLDivElement>;
+
+  constructor(private zoomService: ZoomImageMoveService) {}
+
+  ngAfterViewInit(): void {
+    if (this.imageContainerRef) {
+      this.zoomService.createZoomImage(
+        this.imageContainerRef.nativeElement,
+        {
+          zoomImageSource: "sample.avif",
+        }
+      );
+    }
+  }
+}
+```
+
+```html
+<!-- move-zoom.component.html -->
+<div>
+  <p>Move mouse inside the image to see zoom effect</p>
+  <div
+    #imageContainer
+    class="relative h-[300px] w-[200px] cursor-crosshair overflow-hidden"
+  >
+    <img class="h-full w-full" alt="Large Pic" src="sample.avif" />
+  </div>
+</div>
+```
+
+## Next.js (App Router)
+
+```tsx
+"use client";
+
+import { useZoomImageMove } from "@zoom-image/react";
+import { useEffect, useRef } from "react";
+
+export default function MoveZoomPage() {
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const { createZoomImage } = useZoomImageMove();
+
+  useEffect(() => {
+    if (imageContainerRef.current) {
+      createZoomImage(imageContainerRef.current, {
+        zoomImageSource: "/sample.avif",
+      });
+    }
+  }, [createZoomImage]);
+
+  return (
+    <div>
+      <p>Move mouse inside the image to see zoom effect</p>
+      <div
+        ref={imageContainerRef}
+        className="relative h-[300px] w-[200px] cursor-crosshair overflow-hidden"
+      >
+        <img className="h-full w-full" alt="Large Pic" src="/sample.avif" />
+      </div>
+    </div>
+  );
+}
+```
+
+## Key Configuration Options
+
+### zoomImageSource (Required)
+Specifies the high-resolution image to display when zooming.
+
+```javascript
+const result = createZoomImageMove(container, {
+  zoomImageSource: "/high-res-image.jpg",
+});
+```
+
+### scale
+Sets the magnification level (default: 2).
+
+```javascript
+const result = createZoomImageMove(container, {
+  zoomImageSource: "/image.jpg",
+  scale: 3, // 3x magnification
+});
+```
+
+### scaleFactor
+Provides custom zoom calculation logic.
+
+```javascript
+const result = createZoomImageMove(container, {
+  zoomImageSource: "/image.jpg",
+  scaleFactor: (container, zoom) => {
+    return {
+      x: container.offsetWidth / zoom.offsetWidth,
+      y: container.offsetHeight / zoom.offsetHeight,
+    };
+  },
+});
+```
+
+### zoomTarget
+Optional target element for displaying the zoomed view. If not provided, the zoom appears over the source image.
+
+```javascript
+const zoomTarget = document.getElementById("zoom-container");
+
+const result = createZoomImageMove(container, {
+  zoomImageSource: "/image.jpg",
+  zoomTarget,
+});
+```
+
+## Styling
+
+### Container Styles
+The container should have `overflow: hidden` to prevent the zoomed image from extending beyond boundaries.
+
+```css
+.zoom-container {
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+}
+```
+
+### Custom Cursor
+Provide visual feedback for the zoom interaction.
+
+```css
+.zoom-container {
+  cursor: url('/custom-magnifier.png') 12 12, crosshair;
+}
+```
+
+### Smooth Transitions
+Add smooth movement for the zoomed image (optional).
+
+```css
+.zoom-container img {
+  transition: transform 0.1s ease-out;
+}
+```
+
+## Common Use Cases
+
+### Blueprint Inspection
+Allow engineers and architects to examine detailed technical drawings and blueprints.
+
+```javascript
+const result = createZoomImageMove(container, {
+  zoomImageSource: "/blueprints/floor-plan-highres.jpg",
+  scale: 4, // High magnification for fine details
+});
+```
+
+### Medical Imaging
+Enable healthcare professionals to inspect X-rays, MRIs, and other diagnostic images in detail.
+
+### Art Gallery
+Let visitors explore high-resolution scans of paintings and artwork to see brushstrokes and fine details.
+
+### Map Exploration
+Provide detailed map viewing with smooth panning across different regions.
+
+### Scientific Visualization
+Inspect microscopy images, satellite imagery, or other scientific visualizations.
+
+## Performance Considerations
+
+### Image Loading
+Preload high-resolution images for smooth interaction:
+
+```javascript
+const img = new Image();
+img.src = "/high-res-image.jpg";
+
+img.onload = () => {
+  createZoomImageMove(container, {
+    zoomImageSource: img.src,
+  });
+};
+```
+
+### Debouncing (If Needed)
+For very large images, you might want to debounce mouse movement events:
+
+```javascript
+let timeout;
+container.addEventListener("mousemove", (e) => {
+  clearTimeout(timeout);
+  timeout = setTimeout(() => {
+    // Update zoom position
+  }, 16); // ~60fps
+});
+```
+
+## Touch Support
+
+Move zoom automatically works with touch devices, allowing users to drag their finger to pan around the zoomed image.
+
+```javascript
+const result = createZoomImageMove(container, {
+  zoomImageSource: "/image.jpg",
+  // Touch events are handled automatically
+});
+```
+
+## Accessibility
+
+### Keyboard Navigation
+Consider adding keyboard controls for accessibility:
+
+```javascript
+container.setAttribute("tabindex", "0");
+container.setAttribute("role", "img");
+container.setAttribute("aria-label", "Zoomable image. Use arrow keys to navigate.");
+
+container.addEventListener("keydown", (e) => {
+  const step = 10;
+  switch (e.key) {
+    case "ArrowLeft":
+      // Pan left
+      break;
+    case "ArrowRight":
+      // Pan right
+      break;
+    // ... handle other keys
+  }
+});
+```
+
+## Related
+
+- [API Reference: createZoomImageMove](/api/create-zoom-image-move)
+- [Move Zoom Options Type](/api/types/zoom-image-move-options)
+- [React Hook: useZoomImageMove](/api/react/use-zoom-image-move)
+- [Vue Composable: useZoomImageMove](/api/vue/use-zoom-image-move)

@@ -1,80 +1,353 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get started with Zoom Image in minutes with these step-by-step examples
 ---
 
-## Get started in three steps
+# Quickstart Guide
 
-Get your documentation site running locally and make your first customization.
+Get up and running with Zoom Image in just a few minutes. This guide will walk you through creating your first zoomable image.
 
-### Step 1: Set up your local environment
+<Note>
+  Make sure you've [installed Zoom Image](/installation) before continuing.
+</Note>
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+## Vanilla JavaScript
 
-### Step 2: Deploy your changes
+Let's start with a simple vanilla JavaScript example using the wheel zoom mode:
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+<Steps>
+  <Step title="Create your HTML structure">
+    Create a container element with an image inside:
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    ```html
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Zoom Image Demo</title>
+      <style>
+        .zoom-container {
+          width: 400px;
+          height: 400px;
+          cursor: crosshair;
+          overflow: hidden;
+          background: #000;
+        }
+        .zoom-container img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+      </style>
+    </head>
+    <body>
+      <div id="zoom-container" class="zoom-container">
+        <img src="/your-image.jpg" alt="Zoomable image">
+      </div>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+      <script type="module" src="./main.js"></script>
+    </body>
+    </html>
+    ```
+  </Step>
 
-### Step 3: Go live
+  <Step title="Initialize zoom functionality">
+    Import and initialize the zoom function in your JavaScript file:
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    ```javascript main.js
+    import { createZoomImageWheel } from '@zoom-image/core';
 
-## Next steps
+    const container = document.getElementById('zoom-container');
 
-Now that you have your docs running, explore these key features:
+    // Initialize zoom with options
+    const zoomImage = createZoomImageWheel(container, {
+      maxZoom: 4,
+      wheelZoomRatio: 0.1
+    });
+    ```
+
+    That's it! Your image is now zoomable. Try scrolling over it or pinch-zooming on mobile.
+  </Step>
+
+  <Step title="Add zoom controls (optional)">
+    You can add buttons to control the zoom programmatically:
+
+    ```html
+    <div>
+      <button id="zoom-in">Zoom In</button>
+      <button id="zoom-out">Zoom Out</button>
+      <p id="zoom-level">Zoom: 100%</p>
+    </div>
+    ```
+
+    ```javascript main.js
+    import { createZoomImageWheel } from '@zoom-image/core';
+
+    const container = document.getElementById('zoom-container');
+    const zoomImage = createZoomImageWheel(container, {
+      maxZoom: 4,
+      wheelZoomRatio: 0.1
+    });
+
+    // Subscribe to state changes
+    zoomImage.subscribe(({ state }) => {
+      const zoomLevel = document.getElementById('zoom-level');
+      zoomLevel.textContent = `Zoom: ${Math.round(state.currentZoom * 100)}%`;
+    });
+
+    // Zoom in button
+    document.getElementById('zoom-in').addEventListener('click', () => {
+      const currentState = zoomImage.getState();
+      zoomImage.setState({
+        currentZoom: currentState.currentZoom + 0.5
+      });
+    });
+
+    // Zoom out button
+    document.getElementById('zoom-out').addEventListener('click', () => {
+      const currentState = zoomImage.getState();
+      zoomImage.setState({
+        currentZoom: currentState.currentZoom - 0.5
+      });
+    });
+    ```
+  </Step>
+
+  <Step title="Clean up on unmount">
+    Remember to clean up when you're done:
+
+    ```javascript
+    // When you need to destroy the zoom instance
+    zoomImage.cleanup();
+    ```
+  </Step>
+</Steps>
+
+## React Example
+
+For React applications, use the `@zoom-image/react` adapter for a more idiomatic experience:
+
+<Steps>
+  <Step title="Install the React adapter">
+    ```bash
+    npm install @zoom-image/core @zoom-image/react
+    ```
+  </Step>
+
+  <Step title="Create a zoomable image component">
+    ```tsx App.tsx
+    import { useZoomImageWheel } from '@zoom-image/react';
+    import { useRef, useEffect } from 'react';
+
+    function ZoomableImage() {
+      const containerRef = useRef<HTMLDivElement>(null);
+
+      const {
+        createZoomImage,
+        zoomImageState,
+        setZoomImageState
+      } = useZoomImageWheel();
+
+      useEffect(() => {
+        if (containerRef.current) {
+          createZoomImage(containerRef.current, {
+            maxZoom: 4,
+            wheelZoomRatio: 0.1
+          });
+        }
+      }, [createZoomImage]);
+
+      const zoomIn = () => {
+        setZoomImageState({
+          currentZoom: zoomImageState.currentZoom + 0.5
+        });
+      };
+
+      const zoomOut = () => {
+        setZoomImageState({
+          currentZoom: zoomImageState.currentZoom - 0.5
+        });
+      };
+
+      return (
+        <div>
+          <p>Current zoom: {Math.round(zoomImageState.currentZoom * 100)}%</p>
+          <p>Scroll inside the image to zoom in/out</p>
+
+          <div
+            ref={containerRef}
+            style={{
+              width: '400px',
+              height: '400px',
+              cursor: 'crosshair',
+              overflow: 'hidden'
+            }}
+          >
+            <img
+              src="/your-image.jpg"
+              alt="Zoomable image"
+              style={{ width: '100%', height: '100%' }}
+            />
+          </div>
+
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+            <button onClick={zoomIn}>Zoom In</button>
+            <button onClick={zoomOut}>Zoom Out</button>
+          </div>
+        </div>
+      );
+    }
+
+    export default ZoomableImage;
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  The React adapter automatically handles cleanup when the component unmounts.
+</Tip>
+
+## Exploring Other Zoom Modes
+
+Now that you have a basic wheel zoom working, try the other zoom modes:
+
+### Hover Zoom
+
+Display a magnified view in a separate container:
+
+```javascript
+import { createZoomImageHover } from '@zoom-image/core';
+
+const container = document.getElementById('image-container');
+const zoomTarget = document.getElementById('zoom-target');
+
+const zoomImage = createZoomImageHover(container, {
+  zoomImageSource: '/high-res-image.jpg',
+  customZoom: { width: 300, height: 500 },
+  zoomTarget: zoomTarget,
+  scale: 2
+});
+```
+
+### Move Zoom
+
+Follow the cursor with a magnified view:
+
+```javascript
+import { createZoomImageMove } from '@zoom-image/core';
+
+const container = document.getElementById('image-container');
+
+const zoomImage = createZoomImageMove(container, {
+  zoomImageSource: '/high-res-image.jpg'
+});
+```
+
+### Click Zoom
+
+Toggle zoom on click:
+
+```javascript
+import { createZoomImageClick } from '@zoom-image/core';
+
+const container = document.getElementById('image-container');
+
+const zoomImage = createZoomImageClick(container, {
+  zoomImageSource: '/high-res-image.jpg'
+});
+```
+
+## Advanced Features
+
+### Image Cropping
+
+Capture the current zoomed view as a cropped image:
+
+```javascript
+import { createZoomImageWheel, cropImage } from '@zoom-image/core';
+
+const container = document.getElementById('zoom-container');
+const zoomImage = createZoomImageWheel(container);
+
+// Crop at current zoom level
+document.getElementById('crop-btn').addEventListener('click', async () => {
+  const state = zoomImage.getState();
+  const croppedImageSrc = await cropImage({
+    image: container.querySelector('img'),
+    currentZoom: state.currentZoom,
+    positionX: state.currentPositionX,
+    positionY: state.currentPositionY,
+    rotation: state.currentRotation
+  });
+
+  // Use the cropped image
+  const croppedImg = document.getElementById('cropped-result');
+  croppedImg.src = croppedImageSrc;
+});
+```
+
+### Image Rotation
+
+Rotate the image while maintaining zoom:
+
+```javascript
+const rotateButton = document.getElementById('rotate-btn');
+
+rotateButton.addEventListener('click', () => {
+  const currentState = zoomImage.getState();
+  zoomImage.setState({
+    currentRotation: currentState.currentRotation + 90
+  });
+});
+```
+
+## State Management
+
+All zoom functions return an object with these methods:
+
+- **`getState()`**: Get the current zoom state
+- **`setState(newState)`**: Update the zoom state
+- **`subscribe(callback)`**: Listen to state changes
+- **`cleanup()`**: Remove event listeners and clean up
+
+```javascript
+const zoomImage = createZoomImageWheel(container);
+
+// Get current state
+const state = zoomImage.getState();
+console.log(state.currentZoom); // e.g., 1.5
+
+// Update state
+zoomImage.setState({ currentZoom: 2 });
+
+// Subscribe to changes
+const unsubscribe = zoomImage.subscribe(({ state, prevState }) => {
+  console.log('Zoom changed from', prevState.currentZoom, 'to', state.currentZoom);
+});
+
+// Cleanup
+unsubscribe();
+zoomImage.cleanup();
+```
+
+## Next Steps
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="API Reference" icon="book" href="/api/create-zoom-image-wheel">
+    Explore all configuration options
+  </Card>
+  <Card title="Framework Guides" icon="layer-group" href="/adapters/react">
+    Learn about framework-specific adapters
+  </Card>
+  <Card title="Examples" icon="images" href="/examples/overview">
+    See more advanced implementations
+  </Card>
+  <Card title="Advanced Usage" icon="wand-magic-sparkles" href="/guides/advanced-usage">
+    Customize styling and behavior
+  </Card>
 </CardGroup>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  Need help? Check out the [full source code examples](https://github.com/willnguyen1312/zoom-image/tree/main/examples) on GitHub.
 </Note>

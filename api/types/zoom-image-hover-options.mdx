@@ -1,0 +1,215 @@
+---
+title: 'ZoomImageHoverOptions'
+description: 'Configuration options for the createZoomImageHover function'
+---
+
+The `ZoomImageHoverOptions` type defines the configuration options for creating a hover-based zoom interface that displays a magnified view in a separate zoom target area.
+
+## Type Definition
+
+```typescript
+type ZoomImageHoverOptions = {
+  customZoom: { width: number; height: number }
+  zoomImageSource?: string
+  zoomLensClass?: string
+  zoomLensScale?: number
+  zoomTarget: HTMLElement
+  zoomTargetClass?: string
+  scale?: number
+  disableScrollLock?: boolean
+  zoomImageProps?: {
+    alt?: string
+  }
+}
+```
+
+## Properties
+
+<ParamField path="customZoom" type="{ width: number; height: number }" required>
+  The dimensions of the zoom target area where the magnified image will be displayed.
+  
+  **Example:**
+  ```typescript
+  customZoom: { width: 400, height: 400 }
+  ```
+</ParamField>
+
+<ParamField path="zoomImageSource" type="string">
+  URL of a higher resolution image to use for the zoomed view. If not provided, uses the source image.
+  
+  This is useful when you want to display a smaller image for performance but show a high-resolution version on zoom.
+  
+  **Example:**
+  ```typescript
+  zoomImageSource: '/images/product-high-res.jpg'
+  ```
+</ParamField>
+
+<ParamField path="zoomLensClass" type="string">
+  CSS class name(s) to apply to the zoom lens element. The zoom lens is the overlay that appears on the source image to indicate the zoomed area.
+  
+  If not provided, a default semi-transparent purple background (`rgba(238, 130, 238, 0.5)`) is applied.
+  
+  **Example:**
+  ```typescript
+  zoomLensClass: 'custom-lens border-2'
+  ```
+</ParamField>
+
+<ParamField path="zoomLensScale" type="number" default="1">
+  Scale factor for the zoom lens size. Values greater than 1 make the lens larger, values less than 1 make it smaller.
+  
+  **Example:**
+  ```typescript
+  zoomLensScale: 0.8 // Make lens 80% of default size
+  ```
+</ParamField>
+
+<ParamField path="zoomTarget" type="HTMLElement" required>
+  The HTML element where the zoomed image will be displayed. This is typically a separate container positioned next to or below the source image.
+  
+  **Example:**
+  ```typescript
+  const zoomTarget = document.querySelector('.zoom-preview')
+  zoomTarget: zoomTarget
+  ```
+</ParamField>
+
+<ParamField path="zoomTargetClass" type="string">
+  CSS class name(s) to apply to the zoom target element when zoom is active. Useful for adding visual effects like borders or shadows.
+  
+  **Example:**
+  ```typescript
+  zoomTargetClass: 'active shadow-lg'
+  ```
+</ParamField>
+
+<ParamField path="scale" type="number" default="2">
+  The magnification level for the zoomed image. A value of 2 means the zoomed image is displayed at 2x the original size.
+  
+  **Example:**
+  ```typescript
+  scale: 3 // Show image at 3x magnification
+  ```
+</ParamField>
+
+<ParamField path="disableScrollLock" type="boolean" default="false">
+  Whether to disable automatic scroll locking when zoom is active. By default, scrolling is locked to prevent accidental page scrolling during zoom interaction.
+  
+  **Example:**
+  ```typescript
+  disableScrollLock: true // Allow page scrolling during zoom
+  ```
+</ParamField>
+
+<ParamField path="zoomImageProps" type="object">
+  Additional HTML attributes to apply to the zoomed image element.
+  
+  **Properties:**
+  - `alt?: string` - Alternative text for accessibility
+  
+  **Example:**
+  ```typescript
+  zoomImageProps: {
+    alt: 'Magnified view of product'
+  }
+  ```
+</ParamField>
+
+## Related Types
+
+### ZoomImageHoverState
+
+The internal state managed by the hover zoom component:
+
+```typescript
+type ZoomImageHoverState = {
+  zoomedImgStatus: ZoomedImgStatus  // 'idle' | 'loading' | 'loaded' | 'error'
+  enabled: boolean                   // Whether hover zoom is enabled
+}
+```
+
+### ZoomImageHoverStateUpdate
+
+State updates that can be applied:
+
+```typescript
+type ZoomImageHoverStateUpdate = {
+  enabled: boolean
+}
+```
+
+### ZoomedImgStatus
+
+```typescript
+type ZoomedImgStatus = 'idle' | 'loading' | 'loaded' | 'error'
+```
+
+## Usage Example
+
+```typescript
+import { createZoomImageHover } from '@zoom-image/core'
+
+const container = document.querySelector('.product-image')
+const zoomTarget = document.querySelector('.zoom-preview')
+
+const zoomInstance = createZoomImageHover(container, {
+  customZoom: { width: 500, height: 500 },
+  zoomTarget: zoomTarget,
+  scale: 2.5,
+  zoomImageSource: '/images/product-4k.jpg',
+  zoomLensClass: 'border-2 border-blue-500',
+  zoomTargetClass: 'shadow-xl border-gray-200',
+  zoomLensScale: 0.9,
+  disableScrollLock: false,
+  zoomImageProps: {
+    alt: 'Zoomed product view'
+  }
+})
+
+// Subscribe to state changes
+zoomInstance.subscribe((state) => {
+  console.log('Zoom status:', state.zoomedImgStatus)
+  console.log('Enabled:', state.enabled)
+})
+
+// Toggle zoom functionality
+zoomInstance.setState({ enabled: false })
+
+// Clean up when done
+zoomInstance.cleanup()
+```
+
+## Common Use Cases
+
+### E-commerce Product Images
+
+```typescript
+const productZoom = createZoomImageHover(productContainer, {
+  customZoom: { width: 600, height: 600 },
+  zoomTarget: document.querySelector('.product-zoom-area'),
+  scale: 3,
+  zoomImageSource: productData.highResUrl,
+  zoomLensClass: 'product-lens',
+  zoomTargetClass: 'product-zoom-active'
+})
+```
+
+### Image Gallery
+
+```typescript
+const galleryZoom = createZoomImageHover(galleryItem, {
+  customZoom: { width: 400, height: 400 },
+  zoomTarget: document.querySelector('.gallery-preview'),
+  scale: 2,
+  zoomLensScale: 0.7,
+  disableScrollLock: true
+})
+```
+
+## See Also
+
+- [createZoomImageHover](/api/create-zoom-image-hover) - Function that uses these options
+- [ZoomImageWheelOptions](/api/types/zoom-image-wheel-options) - Options for wheel-based zoom
+- [ZoomImageMoveOptions](/api/types/zoom-image-move-options) - Options for move-based zoom
+- [ZoomImageClickOptions](/api/types/zoom-image-click-options) - Options for click-based zoom

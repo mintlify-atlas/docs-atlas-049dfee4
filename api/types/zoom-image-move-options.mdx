@@ -1,0 +1,209 @@
+---
+title: 'ZoomImageMoveOptions'
+description: 'Configuration options for the createZoomImageMove function'
+---
+
+The `ZoomImageMoveOptions` type defines the configuration options for creating a move-based zoom interface where the cursor position controls the zoomed area, following the pointer movement.
+
+## Type Definition
+
+```typescript
+type ZoomImageMoveOptions = {
+  zoomFactor?: number
+  zoomImageSource?: string
+  disableScrollLock?: boolean  // @deprecated
+  disabledContextMenu?: boolean
+  zoomImageProps?: {
+    alt?: string
+    className?: string
+  }
+}
+```
+
+## Properties
+
+<ParamField path="zoomFactor" type="number" default="4">
+  The magnification level for the zoomed image. This determines how much larger the image appears when zoomed.
+  
+  **Example:**
+  ```typescript
+  zoomFactor: 3 // Show image at 3x magnification
+  ```
+</ParamField>
+
+<ParamField path="zoomImageSource" type="string">
+  URL of a higher resolution image to use for the zoomed view. If not provided, uses the source image's `src` attribute.
+  
+  This is useful for displaying a lower resolution preview image but showing a high-resolution version on zoom.
+  
+  **Example:**
+  ```typescript
+  zoomImageSource: '/images/product-full-resolution.jpg'
+  ```
+</ParamField>
+
+<ParamField path="disableScrollLock" type="boolean" default="false">
+  <Warning>This option is deprecated and no longer has any effect.</Warning>
+  
+  Scroll locking is automatically managed based on pointer type. Mouse interactions do not lock scroll, while touch interactions do.
+</ParamField>
+
+<ParamField path="disabledContextMenu" type="boolean" default="false">
+  Whether to disable the browser's context menu (right-click menu) on the zoomed image. This also disables the long-press save image option on mobile devices.
+  
+  Useful for protecting images from easy downloading or copying.
+  
+  **Technical details:**
+  - Sets `-webkit-user-select: none`
+  - Sets `-webkit-touch-callout: none`
+  - Prevents `contextmenu` event
+  - Prevents default `touchstart` behavior
+  
+  **Example:**
+  ```typescript
+  disabledContextMenu: true // Prevent right-click and long-press save
+  ```
+</ParamField>
+
+<ParamField path="zoomImageProps" type="object">
+  Additional HTML attributes to apply to the zoomed image element.
+  
+  **Properties:**
+  - `alt?: string` - Alternative text for the zoomed image (accessibility)
+  - `className?: string` - CSS class name(s) to apply to the zoomed image element
+  
+  **Example:**
+  ```typescript
+  zoomImageProps: {
+    alt: 'Magnified product view',
+    className: 'zoomed-image shadow-lg'
+  }
+  ```
+</ParamField>
+
+## Related Types
+
+### ZoomImageMoveState
+
+The internal state managed by the move zoom component:
+
+```typescript
+type ZoomImageMoveState = {
+  zoomedImgStatus: ZoomedImgStatus  // 'idle' | 'loading' | 'loaded' | 'error'
+}
+```
+
+### ZoomedImgStatus
+
+```typescript
+type ZoomedImgStatus = 'idle' | 'loading' | 'loaded' | 'error'
+```
+
+Indicates the loading state of the zoomed image:
+- `idle` - Not yet started loading
+- `loading` - Image is currently loading
+- `loaded` - Image has loaded successfully
+- `error` - Image failed to load
+
+## Usage Example
+
+```typescript
+import { createZoomImageMove } from '@zoom-image/core'
+
+const container = document.querySelector('.image-container')
+
+const zoomInstance = createZoomImageMove(container, {
+  zoomFactor: 5,
+  zoomImageSource: '/images/high-res-version.jpg',
+  disabledContextMenu: true,
+  zoomImageProps: {
+    alt: 'High resolution product image',
+    className: 'zoomed-view'
+  }
+})
+
+// Subscribe to state changes
+zoomInstance.subscribe((state) => {
+  console.log('Image status:', state.zoomedImgStatus)
+  
+  if (state.zoomedImgStatus === 'loaded') {
+    console.log('High-res image loaded successfully')
+  }
+})
+
+// Get current state
+const currentState = zoomInstance.getState()
+console.log('Current status:', currentState.zoomedImgStatus)
+
+// Clean up when done
+zoomInstance.cleanup()
+```
+
+## Behavior Details
+
+### Pointer Tracking
+
+The zoom follows the cursor/touch position in real-time:
+- **Mouse**: Zoom activates on `pointerenter` and follows `pointermove` events
+- **Touch**: Zoom activates on touch and follows finger movement
+- The zoomed image is positioned to keep the cursor point centered
+
+### Scroll Lock Behavior
+
+Scroll locking is automatically managed:
+- **Mouse interactions**: Scroll is NOT locked (allows normal page scrolling)
+- **Touch interactions**: Scroll IS locked (prevents accidental page scrolling)
+
+### Boundary Constraints
+
+The zoomed image position is constrained to prevent showing empty space:
+- Cannot pan beyond the image edges
+- Automatically clamps position to valid range using `calculatePositionX` and `calculatePositionY`
+
+## Common Use Cases
+
+### Product Detail Pages
+
+```typescript
+const productZoom = createZoomImageMove(productImage, {
+  zoomFactor: 4,
+  zoomImageSource: product.images.fullResolution,
+  disabledContextMenu: true,
+  zoomImageProps: {
+    alt: `Zoomed view of ${product.name}`,
+    className: 'product-zoom-image'
+  }
+})
+```
+
+### Protected Image Galleries
+
+```typescript
+const galleryZoom = createZoomImageMove(galleryItem, {
+  zoomFactor: 3,
+  disabledContextMenu: true, // Prevent easy image saving
+  zoomImageProps: {
+    alt: 'Gallery image detail view'
+  }
+})
+```
+
+### Medical or Technical Imaging
+
+```typescript
+const technicalZoom = createZoomImageMove(diagramContainer, {
+  zoomFactor: 6, // Higher magnification for detail
+  zoomImageSource: '/diagrams/blueprint-ultra-high-res.png',
+  zoomImageProps: {
+    alt: 'Technical diagram detail',
+    className: 'diagram-zoom'
+  }
+})
+```
+
+## See Also
+
+- [createZoomImageMove](/api/create-zoom-image-move) - Function that uses these options
+- [ZoomImageWheelOptions](/api/types/zoom-image-wheel-options) - Options for wheel-based zoom
+- [ZoomImageHoverOptions](/api/types/zoom-image-hover-options) - Options for hover-based zoom
+- [ZoomImageClickOptions](/api/types/zoom-image-click-options) - Options for click-based zoom

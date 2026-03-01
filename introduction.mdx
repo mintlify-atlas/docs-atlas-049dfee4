@@ -1,0 +1,129 @@
+---
+title: Introduction
+description: A powerful, framework-agnostic headless library for zooming images on the web
+---
+
+# Introduction to Zoom Image
+
+Zoom Image is a lightweight yet powerful framework-agnostic headless library that brings professional image zooming capabilities to your web applications. Perfect for e-commerce sites, product galleries, and any application requiring detailed image inspection.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get up and running in minutes with our quickstart guide
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/create-zoom-image-wheel">
+    Explore the complete API documentation
+  </Card>
+  <Card title="Examples" icon="images" href="/examples/overview">
+    Browse real-world examples and use cases
+  </Card>
+  <Card title="Framework Adapters" icon="layer-group" href="/adapters/react">
+    Use pre-built adapters for your favorite framework
+  </Card>
+</CardGroup>
+
+## Key Features
+
+Zoom Image provides multiple interaction patterns to suit your needs:
+
+### Zoom on Wheel
+Support for scroll wheel and pinch gestures with smooth zooming, panning, and rotation capabilities. Ideal for detailed image inspection.
+
+- Mouse wheel zoom with customizable zoom ratios
+- Touch pinch-to-zoom support
+- Pan and drag when zoomed in
+- Double-tap to zoom on mobile devices
+- Rotation support with state management
+- Image cropping at current zoom level
+
+### Zoom on Hover
+Display a magnified view in a separate target element when hovering over an image. Perfect for product detail pages.
+
+- Customizable zoom target positioning
+- Adjustable zoom scale and lens size
+- High-resolution image support
+- Custom styling options
+- Smooth lens tracking
+
+### Zoom on Move
+Follow the cursor with a magnified view directly on the image. Great for precision work.
+
+- Magnified region follows cursor
+- No separate zoom target needed
+- Lightweight and performant
+- Custom zoom source support
+
+### Zoom on Click
+Toggle zoom in/out on click for touch-friendly interfaces.
+
+- Click to zoom in/out
+- Touch-friendly interaction
+- Simple toggle behavior
+- Smooth transitions
+
+## Headless & Framework-Agnostic
+
+Zoom Image is built as a **headless library**, meaning it provides the core functionality without imposing any specific UI or styling. This approach gives you complete control over:
+
+- **Appearance**: Style the zoom components exactly how you want
+- **Behavior**: Customize interaction patterns to match your UX
+- **Integration**: Use with any framework or vanilla JavaScript
+
+The core library (`@zoom-image/core`) works with vanilla JavaScript and can be integrated into any web application. For popular frameworks, we provide convenient adapters that wrap the core functionality with framework-specific patterns:
+
+<CardGroup cols={3}>
+  <Card title="React" icon="react" href="/adapters/react">
+    Hooks-based adapter
+  </Card>
+  <Card title="Vue" icon="vuejs" href="/adapters/vue">
+    Composition API support
+  </Card>
+  <Card title="Svelte" icon="code" href="/adapters/svelte">
+    Store-based integration
+  </Card>
+  <Card title="Angular" icon="code" href="/adapters/angular">
+    Directive-based approach
+  </Card>
+  <Card title="Solid" icon="code" href="/adapters/solid">
+    Reactive primitives
+  </Card>
+  <Card title="Qwik" icon="code" href="/adapters/qwik">
+    Resumable components
+  </Card>
+</CardGroup>
+
+## Architecture
+
+Zoom Image is inspired by leading headless UI libraries:
+
+- **TanStack**: Headless UI pattern for maximum flexibility
+- **Zag.js**: Clean architecture and state machine approach
+- **React Zoomable Media**: Proven zoom interaction patterns
+
+The library uses a lightweight state management system (`@namnode/store`) to provide reactive state updates across all zoom modes, ensuring smooth performance even with complex interactions.
+
+<Note>
+  All zoom functions return a cleanup method and state management utilities, making it easy to integrate into any application lifecycle.
+</Note>
+
+## Why Choose Zoom Image?
+
+- **Tiny bundle size**: Optimized for performance without sacrificing features
+- **TypeScript support**: Fully typed for excellent developer experience
+- **Zero dependencies**: Core library has minimal dependencies
+- **Mobile-first**: Touch gestures and mobile interactions built-in
+- **Accessible**: Keyboard and screen reader friendly
+- **Well-tested**: Comprehensive test coverage
+- **Active maintenance**: Regular updates and improvements
+
+## Browser Support
+
+Zoom Image works in all modern browsers:
+
+- Chrome, Edge, Safari, Firefox (latest versions)
+- iOS Safari 12+
+- Android Chrome 88+
+
+<Tip>
+  Ready to start? Head to the [Quickstart guide](/quickstart) to build your first zoom implementation in minutes!
+</Tip>

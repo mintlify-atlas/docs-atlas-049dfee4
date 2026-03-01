@@ -1,0 +1,345 @@
+---
+title: Hover Zoom Example
+description: Display a magnified view in a separate target element on hover
+---
+
+Hover zoom displays a magnified version of an image in a separate element when users hover over the source image. This pattern is commonly used in e-commerce product galleries and image catalogs.
+
+## Features
+
+- Magnified view appears in a separate target element
+- Configurable zoom scale and dimensions
+- Smooth hover interactions
+- Custom zoom target positioning
+- High-resolution image support
+
+## Vanilla JavaScript
+
+<Tabs>
+  <Tab title="HTML">
+    ```html
+    <div id="image-hover-container" class="relative flex h-[300px] w-[200px]">
+      <img src="/sample.avif" alt="Hover to zoom" />
+      <div id="zoom-target" class="absolute left-[350px]"></div>
+    </div>
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    import { createZoomImageHover } from "@zoom-image/core";
+
+    const container = document.getElementById("image-hover-container");
+    const zoomTarget = document.getElementById("zoom-target");
+
+    const result = createZoomImageHover(container, {
+      zoomImageSource: "/sample.avif",
+      customZoom: { width: 300, height: 500 },
+      zoomTarget,
+      scale: 2,
+    });
+
+    // Cleanup when done
+    // result.cleanup();
+    ```
+  </Tab>
+</Tabs>
+
+## React
+
+```tsx
+import { useZoomImageHover } from "@zoom-image/react";
+import { useEffect, useRef } from "react";
+
+function HoverZoomExample() {
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const zoomTargetRef = useRef<HTMLDivElement>(null);
+
+  const { createZoomImage } = useZoomImageHover();
+
+  useEffect(() => {
+    if (imageContainerRef.current && zoomTargetRef.current) {
+      createZoomImage(imageContainerRef.current, {
+        zoomImageSource: "/sample.avif",
+        customZoom: { width: 300, height: 500 },
+        zoomTarget: zoomTargetRef.current,
+        scale: 2,
+      });
+    }
+  }, [createZoomImage]);
+
+  return (
+    <div>
+      <p>Hover inside the image to see zoom effect</p>
+      <div
+        ref={imageContainerRef}
+        className="relative flex h-[300px] w-[200px]"
+      >
+        <img
+          className="h-full w-full"
+          alt="Small Pic"
+          src="/sample.avif"
+        />
+        <div ref={zoomTargetRef} className="absolute left-[350px]"></div>
+      </div>
+    </div>
+  );
+}
+
+export default HoverZoomExample;
+```
+
+## Vue
+
+```vue
+<script setup lang="ts">
+import { useZoomImageHover } from "@zoom-image/vue";
+import { onMounted, ref } from "vue";
+
+const imageContainerRef = ref<HTMLDivElement>();
+const zoomTargetRef = ref<HTMLDivElement>();
+
+const { createZoomImage } = useZoomImageHover();
+
+onMounted(() => {
+  createZoomImage(imageContainerRef.value as HTMLDivElement, {
+    zoomImageSource: "/sample.avif",
+    customZoom: { width: 300, height: 500 },
+    zoomTarget: zoomTargetRef.value as HTMLDivElement,
+    scale: 2,
+  });
+});
+</script>
+
+<template>
+  <div>
+    <p>Hover inside the image to see zoom effect</p>
+    <div
+      ref="imageContainerRef"
+      class="relative flex h-[300px] w-[200px]"
+    >
+      <img class="h-full w-full" alt="Small Pic" src="/sample.avif" />
+      <div ref="zoomTargetRef" class="absolute left-[350px]"></div>
+    </div>
+  </div>
+</template>
+```
+
+## Svelte
+
+```svelte
+<script lang="ts">
+  import { useZoomImageHover } from "@zoom-image/svelte";
+  import { onMount } from "svelte";
+
+  let imageContainer: HTMLDivElement;
+  let zoomTarget: HTMLDivElement;
+
+  let { createZoomImage } = useZoomImageHover();
+
+  onMount(() => {
+    createZoomImage(imageContainer, {
+      zoomImageSource: "/sample.avif",
+      customZoom: { width: 300, height: 500 },
+      zoomTarget,
+      scale: 2,
+    });
+  });
+</script>
+
+<div>
+  <p>Hover inside the image to see zoom effect</p>
+  <div
+    bind:this={imageContainer}
+    class="relative flex h-[300px] w-[200px]"
+  >
+    <img class="h-full w-full" alt="Small Pic" src="/sample.avif" />
+    <div bind:this={zoomTarget} class="absolute left-[350px]"></div>
+  </div>
+</div>
+```
+
+## Angular
+
+```typescript
+import { AfterViewInit, Component, ElementRef, ViewChild } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { ZoomImageHoverService } from "@zoom-image/angular";
+
+@Component({
+  selector: "app-hover-zoom",
+  templateUrl: "./hover-zoom.component.html",
+  providers: [ZoomImageHoverService],
+  imports: [CommonModule],
+})
+export class HoverZoomComponent implements AfterViewInit {
+  @ViewChild("imageContainer") imageContainerRef?: ElementRef<HTMLDivElement>;
+  @ViewChild("zoomTarget") zoomTargetRef?: ElementRef<HTMLDivElement>;
+
+  constructor(private zoomService: ZoomImageHoverService) {}
+
+  ngAfterViewInit(): void {
+    if (this.imageContainerRef && this.zoomTargetRef) {
+      this.zoomService.createZoomImage(
+        this.imageContainerRef.nativeElement,
+        {
+          zoomImageSource: "sample.avif",
+          customZoom: { width: 300, height: 500 },
+          zoomTarget: this.zoomTargetRef.nativeElement,
+          scale: 2,
+        }
+      );
+    }
+  }
+}
+```
+
+```html
+<!-- hover-zoom.component.html -->
+<div>
+  <p>Hover inside the image to see zoom effect</p>
+  <div
+    #imageContainer
+    class="relative flex h-[300px] w-[200px]"
+  >
+    <img class="h-full w-full" alt="Small Pic" src="sample.avif" />
+    <div #zoomTarget class="absolute left-[350px]"></div>
+  </div>
+</div>
+```
+
+## Key Configuration Options
+
+### zoomImageSource (Required)
+Specifies the high-resolution image to display when hovering.
+
+```javascript
+const result = createZoomImageHover(container, {
+  zoomImageSource: "/high-res-image.jpg",
+});
+```
+
+### zoomTarget
+The element where the magnified view will be displayed. If not provided, the zoom appears over the source image.
+
+```javascript
+const zoomTarget = document.getElementById("zoom-container");
+
+const result = createZoomImageHover(container, {
+  zoomImageSource: "/image.jpg",
+  zoomTarget,
+});
+```
+
+### customZoom
+Defines custom dimensions for the zoom target element.
+
+```javascript
+const result = createZoomImageHover(container, {
+  zoomImageSource: "/image.jpg",
+  customZoom: { width: 400, height: 600 },
+});
+```
+
+### scale
+Sets the magnification level (default: 1).
+
+```javascript
+const result = createZoomImageHover(container, {
+  zoomImageSource: "/image.jpg",
+  scale: 3, // 3x magnification
+});
+```
+
+### scaleFactor
+Provides fine-grained control over zoom behavior.
+
+```javascript
+const result = createZoomImageHover(container, {
+  zoomImageSource: "/image.jpg",
+  scaleFactor: (container, zoom) => {
+    return {
+      x: container.offsetWidth / zoom.offsetWidth,
+      y: container.offsetHeight / zoom.offsetHeight,
+    };
+  },
+});
+```
+
+## Common Use Cases
+
+### E-commerce Product Gallery
+Show detailed product views in a side panel when customers hover over product thumbnails.
+
+```javascript
+const result = createZoomImageHover(thumbnailContainer, {
+  zoomImageSource: "/products/high-res-image.jpg",
+  zoomTarget: detailPanelElement,
+  customZoom: { width: 500, height: 500 },
+  scale: 2,
+});
+```
+
+### Image Catalog
+Provide quick preview functionality for image galleries without requiring full-page navigation.
+
+### Portfolio Showcase
+Allow visitors to examine artwork or photography details without leaving the gallery view.
+
+### Document Preview
+Enable users to read small text or examine details in document thumbnails.
+
+## Responsive Design
+
+### Mobile Considerations
+Hover zoom is primarily designed for desktop experiences. For mobile devices, consider using [Click Zoom](/examples/click-zoom) instead:
+
+```javascript
+import { createZoomImageHover, createZoomImageClick } from "@zoom-image/core";
+
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+if (isMobile) {
+  createZoomImageClick(container, {
+    zoomImageSource: "/image.jpg",
+  });
+} else {
+  createZoomImageHover(container, {
+    zoomImageSource: "/image.jpg",
+    zoomTarget: targetElement,
+  });
+}
+```
+
+## Positioning the Zoom Target
+
+### Side Panel
+```css
+.image-container {
+  position: relative;
+}
+
+.zoom-target {
+  position: absolute;
+  left: 350px; /* Position to the right */
+  top: 0;
+}
+```
+
+### Overlay
+```css
+.zoom-target {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none; /* Allow clicks through */
+}
+```
+
+## Related
+
+- [API Reference: createZoomImageHover](/api/create-zoom-image-hover)
+- [Hover Zoom Options Type](/api/types/zoom-image-hover-options)
+- [React Hook: useZoomImageHover](/api/react/use-zoom-image-hover)
+- [Vue Composable: useZoomImageHover](/api/vue/use-zoom-image-hover)

@@ -1,0 +1,288 @@
+---
+title: Preact
+description: Preact hooks for implementing zoom image functionality in your Preact applications
+---
+
+The Preact adapter provides hooks that wrap the core zoom-image functionality for seamless integration with Preact applications.
+
+## Installation
+
+```bash
+npm install @zoom-image/preact
+```
+
+## Available Hooks
+
+The Preact adapter exports four hooks, one for each zoom mode:
+
+- `useZoomImageWheel` - Zoom with mouse wheel/pinch gestures
+- `useZoomImageHover` - Zoom on hover with a separate zoom target
+- `useZoomImageMove` - Zoom follows mouse/touch movement
+- `useZoomImageClick` - Toggle zoom on click
+
+## Hook Return Values
+
+Each hook returns an object with:
+
+- `createZoomImage` - Function to initialize zoom on a container element
+- `zoomImageState` - Current state object (varies by zoom mode)
+- `setZoomImageState` - Function to update state (available for wheel and hover modes)
+
+## Wheel Zoom
+
+Zoom in and out using the mouse wheel or pinch gestures. Supports programmatic zoom control, rotation, and image cropping.
+
+### Basic Example
+
+```tsx
+import { useZoomImageWheel } from "@zoom-image/preact"
+import { useEffect, useRef } from "preact/hooks"
+
+export function WheelZoomImage() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { createZoomImage, zoomImageState } = useZoomImageWheel()
+
+  useEffect(() => {
+    if (containerRef.current) {
+      createZoomImage(containerRef.current)
+    }
+  }, [])
+
+  return (
+    <div>
+      <p>Current zoom: {Math.round(zoomImageState.currentZoom * 100)}%</p>
+      <div ref={containerRef} class="h-[300px] w-[200px]">
+        <img class="h-full w-full" src="/image.jpg" alt="Zoomable" />
+      </div>
+    </div>
+  )
+}
+```
+
+### Complete Example with Controls
+
+```tsx
+import { useZoomImageWheel } from "@zoom-image/preact"
+import { cropImage } from "@zoom-image/core"
+import { useEffect, useRef, useState } from "preact/hooks"
+
+export function AdvancedWheelZoom() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [croppedImage, setCroppedImage] = useState<string | null>(null)
+  
+  const {
+    createZoomImage,
+    zoomImageState,
+    setZoomImageState,
+  } = useZoomImageWheel()
+
+  useEffect(() => {
+    if (containerRef.current) {
+      createZoomImage(containerRef.current)
+    }
+  }, [])
+
+  const zoomIn = () => {
+    setZoomImageState({
+      currentZoom: zoomImageState.currentZoom + 0.5,
+    })
+  }
+
+  const zoomOut = () => {
+    setZoomImageState({
+      currentZoom: zoomImageState.currentZoom - 0.5,
+    })
+  }
+
+  const rotate = () => {
+    setZoomImageState({
+      currentRotation: zoomImageState.currentRotation + 90,
+    })
+  }
+
+  const handleCrop = async () => {
+    const result = await cropImage({
+      currentZoom: zoomImageState.currentZoom,
+      image: containerRef.current?.querySelector('img') as HTMLImageElement,
+      positionX: zoomImageState.currentPositionX,
+      positionY: zoomImageState.currentPositionY,
+      rotation: zoomImageState.currentRotation,
+    })
+    setCroppedImage(result)
+  }
+
+  return (
+    <div>
+      <div class="flex gap-4">
+        <div ref={containerRef} class="h-[300px] w-[200px]">
+          <img class="h-full w-full" src="/image.jpg" alt="Zoomable" />
+        </div>
+        {croppedImage && (
+          <img src={croppedImage} alt="Cropped" class="h-[300px] w-[200px]" />
+        )}
+      </div>
+      
+      <div class="flex gap-2 mt-4">
+        <button onClick={zoomIn}>Zoom In</button>
+        <button onClick={zoomOut}>Zoom Out</button>
+        <button onClick={rotate}>Rotate</button>
+        <button onClick={handleCrop}>Crop Image</button>
+      </div>
+    </div>
+  )
+}
+```
+
+### State Properties
+
+- `currentZoom: number` - Current zoom level (1 = 100%)
+- `enable: boolean` - Whether zoom is enabled
+- `currentPositionX: number` - X position offset
+- `currentPositionY: number` - Y position offset
+- `currentRotation: number` - Rotation angle in degrees
+
+## Hover Zoom
+
+Display a zoomed version in a separate container when hovering over the image.
+
+### Basic Example
+
+```tsx
+import { useZoomImageHover } from "@zoom-image/preact"
+import { useEffect, useRef } from "preact/hooks"
+
+export function HoverZoomImage() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const zoomTargetRef = useRef<HTMLDivElement>(null)
+  const { createZoomImage } = useZoomImageHover()
+
+  useEffect(() => {
+    if (containerRef.current && zoomTargetRef.current) {
+      createZoomImage(containerRef.current, {
+        zoomImageSource: "/image-large.jpg",
+        customZoom: { width: 300, height: 500 },
+        zoomTarget: zoomTargetRef.current,
+        scale: 2,
+      })
+    }
+  }, [])
+
+  return (
+    <div class="relative flex">
+      <div ref={containerRef} class="h-[300px] w-[200px]">
+        <img class="h-full w-full" src="/image.jpg" alt="Hover to zoom" />
+      </div>
+      <div ref={zoomTargetRef} class="absolute left-[350px]" />
+    </div>
+  )
+}
+```
+
+### State Properties
+
+- `enabled: boolean` - Whether hover is active
+- `zoomedImgStatus: string` - Loading status ("idle" | "loading" | "loaded")
+
+## Move Zoom
+
+Zoom follows the mouse or touch movement within the image container.
+
+### Basic Example
+
+```tsx
+import { useZoomImageMove } from "@zoom-image/preact"
+import { useEffect, useRef } from "preact/hooks"
+
+export function MoveZoomImage() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { createZoomImage } = useZoomImageMove()
+
+  useEffect(() => {
+    if (containerRef.current) {
+      createZoomImage(containerRef.current, {
+        zoomImageSource: "/image-large.jpg",
+      })
+    }
+  }, [])
+
+  return (
+    <div 
+      ref={containerRef} 
+      class="relative h-[300px] w-[200px] overflow-hidden cursor-crosshair"
+    >
+      <img class="h-full w-full" src="/image.jpg" alt="Move to zoom" />
+    </div>
+  )
+}
+```
+
+### State Properties
+
+- `zoomedImgStatus: string` - Loading status ("idle" | "loading" | "loaded")
+
+## Click Zoom
+
+Toggle between zoomed and normal states by clicking the image.
+
+### Basic Example
+
+```tsx
+import { useZoomImageClick } from "@zoom-image/preact"
+import { useEffect, useRef } from "preact/hooks"
+
+export function ClickZoomImage() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { createZoomImage } = useZoomImageClick()
+
+  useEffect(() => {
+    if (containerRef.current) {
+      createZoomImage(containerRef.current, {
+        zoomImageSource: "/image-large.jpg",
+      })
+    }
+  }, [])
+
+  return (
+    <div 
+      ref={containerRef} 
+      class="relative h-[300px] w-[200px] overflow-hidden cursor-crosshair"
+    >
+      <img class="h-full w-full" src="/image.jpg" alt="Click to zoom" />
+    </div>
+  )
+}
+```
+
+### State Properties
+
+- `zoomedImgStatus: string` - Loading status ("idle" | "loading" | "loaded")
+
+## TypeScript Support
+
+All hooks are fully typed. Import types from `@zoom-image/core`:
+
+```tsx
+import type { 
+  ZoomImageWheelState,
+  ZoomImageHoverState,
+  ZoomImageMoveState,
+  ZoomImageClickState 
+} from "@zoom-image/core"
+```
+
+## Cleanup
+
+All hooks automatically clean up on component unmount. The cleanup is handled internally using Preact's `useEffect` cleanup function.
+
+## Differences from React
+
+The Preact adapter is nearly identical to the React adapter but uses `preact/hooks` instead of `react`. If you're familiar with the React adapter, you'll feel right at home.
+
+Key differences:
+- Import hooks from `preact/hooks` instead of `react`
+- Use `class` instead of `className` for CSS classes (Preact supports both)
+
+## Live Examples
+
+See the Preact adapter in action:
+- [Preact Example](https://github.com/willnguyen1312/zoom-image/tree/main/examples/with-preact)

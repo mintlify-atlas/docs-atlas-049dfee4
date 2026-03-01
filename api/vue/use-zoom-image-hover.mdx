@@ -1,0 +1,335 @@
+---
+title: useZoomImageHover
+description: Vue composable for hover-triggered image magnification with lens effect
+---
+
+## Overview
+
+The `useZoomImageHover` composable provides hover-based image zoom functionality with a magnifying lens effect. When users hover over an image, a zoomed version appears in a designated target area, perfect for product images and detail viewing.
+
+## Signature
+
+```typescript
+function useZoomImageHover(): {
+  createZoomImage: (
+    container: HTMLElement,
+    options: ZoomImageHoverOptions
+  ) => void
+  zoomImageState: ZoomImageHoverState
+  setZoomImageState: (state: ZoomImageHoverStateUpdate) => void
+}
+```
+
+## Return Value
+
+<ResponseField name="createZoomImage" type="function" required>
+  Initializes the hover zoom functionality on the specified container element.
+  
+  <ParamField name="container" type="HTMLElement" required>
+    The container element that wraps the source image
+  </ParamField>
+  
+  <ParamField name="options" type="ZoomImageHoverOptions" required>
+    Configuration options for the hover zoom behavior
+    
+    <ParamField name="customZoom" type="{ width: number; height: number }" required>
+      Dimensions of the zoomed image display area
+    </ParamField>
+    
+    <ParamField name="zoomTarget" type="HTMLElement" required>
+      The element where the zoomed image will be displayed
+    </ParamField>
+    
+    <ParamField name="zoomImageSource" type="string">
+      URL of the high-resolution image to display when zoomed. Defaults to the source image's `src`
+    </ParamField>
+    
+    <ParamField name="scale" type="number" default="2">
+      The zoom scale factor (2 = 200% zoom)
+    </ParamField>
+    
+    <ParamField name="zoomLensClass" type="string">
+      CSS class name for the zoom lens element. If not provided, a default purple semi-transparent background is used
+    </ParamField>
+    
+    <ParamField name="zoomLensScale" type="number" default="1">
+      Scale factor for the lens size
+    </ParamField>
+    
+    <ParamField name="zoomTargetClass" type="string">
+      CSS class name(s) to add to the zoom target when hovering. Space-separated for multiple classes
+    </ParamField>
+    
+    <ParamField name="disableScrollLock" type="boolean" default="false">
+      If `true`, allows page scrolling while hovering over the image
+    </ParamField>
+    
+    <ParamField name="zoomImageProps" type="object">
+      Additional props for the zoomed image element
+      
+      <ParamField name="alt" type="string">
+        Alt text for the zoomed image
+      </ParamField>
+    </ParamField>
+  </ParamField>
+</ResponseField>
+
+<ResponseField name="zoomImageState" type="ZoomImageHoverState" required>
+  Reactive state object containing current hover zoom properties
+  
+  <ResponseField name="enabled" type="boolean">
+    Whether hover zoom functionality is currently enabled
+  </ResponseField>
+  
+  <ResponseField name="zoomedImgStatus" type="'idle' | 'loading' | 'loaded' | 'error'">
+    Loading status of the zoomed image
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="setZoomImageState" type="function" required>
+  Updates the hover zoom state programmatically
+  
+  <ParamField name="state" type="ZoomImageHoverStateUpdate" required>
+    State update object
+    
+    <ParamField name="enabled" type="boolean">
+      Enable or disable hover zoom functionality
+    </ParamField>
+  </ParamField>
+</ResponseField>
+
+## Examples
+
+### Basic Usage
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useZoomImageHover } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const zoomTargetRef = ref<HTMLDivElement>()
+const { createZoomImage } = useZoomImageHover()
+
+onMounted(() => {
+  if (imageContainerRef.value && zoomTargetRef.value) {
+    createZoomImage(imageContainerRef.value, {
+      zoomImageSource: '/high-res-image.jpg',
+      customZoom: { width: 400, height: 600 },
+      zoomTarget: zoomTargetRef.value,
+      scale: 2
+    })
+  }
+})
+</script>
+
+<template>
+  <div class="flex gap-4">
+    <div ref="imageContainerRef" class="relative h-[300px] w-[200px]">
+      <img src="/sample.jpg" alt="Product" class="h-full w-full" />
+    </div>
+    
+    <div ref="zoomTargetRef" class="h-[600px] w-[400px] border"></div>
+  </div>
+</template>
+```
+
+### With Custom Lens Styling
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useZoomImageHover } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const zoomTargetRef = ref<HTMLDivElement>()
+const { createZoomImage } = useZoomImageHover()
+
+onMounted(() => {
+  if (imageContainerRef.value && zoomTargetRef.value) {
+    createZoomImage(imageContainerRef.value, {
+      zoomImageSource: '/high-res-image.jpg',
+      customZoom: { width: 300, height: 500 },
+      zoomTarget: zoomTargetRef.value,
+      scale: 2.5,
+      zoomLensClass: 'custom-lens',
+      zoomTargetClass: 'border-2 border-blue-500'
+    })
+  }
+})
+</script>
+
+<template>
+  <div class="flex gap-4">
+    <div ref="imageContainerRef" class="relative h-[300px] w-[200px]">
+      <img src="/sample.jpg" alt="Product" class="h-full w-full" />
+    </div>
+    
+    <div ref="zoomTargetRef"></div>
+  </div>
+</template>
+
+<style scoped>
+.custom-lens {
+  background: rgba(59, 130, 246, 0.3);
+  border: 2px solid rgb(59, 130, 246);
+  border-radius: 4px;
+}
+</style>
+```
+
+### With State Monitoring
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useZoomImageHover } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const zoomTargetRef = ref<HTMLDivElement>()
+const { createZoomImage, zoomImageState } = useZoomImageHover()
+
+onMounted(() => {
+  if (imageContainerRef.value && zoomTargetRef.value) {
+    createZoomImage(imageContainerRef.value, {
+      zoomImageSource: '/high-res-image.jpg',
+      customZoom: { width: 400, height: 600 },
+      zoomTarget: zoomTargetRef.value
+    })
+  }
+})
+</script>
+
+<template>
+  <div>
+    <p>Image status: {{ zoomImageState.zoomedImgStatus }}</p>
+    <p>Enabled: {{ zoomImageState.enabled }}</p>
+    
+    <div class="flex gap-4">
+      <div ref="imageContainerRef" class="relative h-[300px] w-[200px]">
+        <img src="/sample.jpg" alt="Product" class="h-full w-full" />
+      </div>
+      
+      <div ref="zoomTargetRef" class="h-[600px] w-[400px] border">
+        <div v-if="zoomImageState.zoomedImgStatus === 'loading'" 
+             class="flex h-full items-center justify-center">
+          Loading...
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+```
+
+### Enabling/Disabling Zoom
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useZoomImageHover } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const zoomTargetRef = ref<HTMLDivElement>()
+const { createZoomImage, zoomImageState, setZoomImageState } = useZoomImageHover()
+
+const toggleZoom = () => {
+  setZoomImageState({ enabled: !zoomImageState.enabled })
+}
+
+onMounted(() => {
+  if (imageContainerRef.value && zoomTargetRef.value) {
+    createZoomImage(imageContainerRef.value, {
+      zoomImageSource: '/high-res-image.jpg',
+      customZoom: { width: 400, height: 600 },
+      zoomTarget: zoomTargetRef.value
+    })
+  }
+})
+</script>
+
+<template>
+  <div>
+    <button @click="toggleZoom" class="mb-4 px-4 py-2 bg-gray-100 rounded">
+      {{ zoomImageState.enabled ? 'Disable' : 'Enable' }} Zoom
+    </button>
+    
+    <div class="flex gap-4">
+      <div ref="imageContainerRef" class="relative h-[300px] w-[200px]">
+        <img src="/sample.jpg" alt="Product" class="h-full w-full" />
+      </div>
+      
+      <div ref="zoomTargetRef" class="h-[600px] w-[400px] border"></div>
+    </div>
+  </div>
+</template>
+```
+
+### Options API Example
+
+```vue
+<script lang="ts">
+import { defineComponent } from 'vue'
+import { useZoomImageHover } from '@zoom-image/vue'
+
+export default defineComponent({
+  setup() {
+    return useZoomImageHover()
+  },
+  mounted() {
+    const container = this.$refs.imageContainer as HTMLDivElement
+    const target = this.$refs.zoomTarget as HTMLDivElement
+    
+    if (container && target) {
+      this.createZoomImage(container, {
+        zoomImageSource: '/high-res-image.jpg',
+        customZoom: { width: 400, height: 600 },
+        zoomTarget: target,
+        scale: 2
+      })
+    }
+  }
+})
+</script>
+
+<template>
+  <div class="flex gap-4">
+    <div ref="imageContainer" class="relative h-[300px] w-[200px]">
+      <img src="/sample.jpg" alt="Product" class="h-full w-full" />
+    </div>
+    
+    <div ref="zoomTarget" class="h-[600px] w-[400px] border"></div>
+  </div>
+</template>
+```
+
+## Cleanup
+
+The composable automatically cleans up event listeners, DOM elements, and resources when the component is unmounted using Vue's `onUnmounted` hook. If you need to reinitialize the zoom on the same container, simply call `createZoomImage` again - it will automatically clean up the previous instance.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useZoomImageHover } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const zoomTargetRef = ref<HTMLDivElement>()
+const { createZoomImage } = useZoomImageHover()
+
+const changeImage = (newImageUrl: string) => {
+  if (imageContainerRef.value && zoomTargetRef.value) {
+    // Previous instance is automatically cleaned up
+    createZoomImage(imageContainerRef.value, {
+      zoomImageSource: newImageUrl,
+      customZoom: { width: 400, height: 600 },
+      zoomTarget: zoomTargetRef.value
+    })
+  }
+}
+</script>
+```
+
+## See Also
+
+- [createZoomImageHover](/api/create-zoom-image-hover) - Core API documentation
+- [useZoomImageWheel](/api/vue/use-zoom-image-wheel) - Wheel-based zoom composable
+- [useZoomImageMove](/api/vue/use-zoom-image-move) - Move-based zoom composable

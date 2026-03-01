@@ -1,0 +1,668 @@
+---
+title: Styling Guide
+description: Learn how to customize the appearance of zoom containers, lenses, and targets with CSS
+---
+
+This guide covers styling techniques for all zoom modes, including custom CSS classes, responsive design, and advanced visual effects.
+
+## Container Styling
+
+The zoom container is the wrapper element that contains your source image. Proper styling ensures smooth interactions and optimal display.
+
+### Basic Container Setup
+
+```css
+.zoom-container {
+  position: relative;
+  width: 300px;
+  height: 400px;
+  cursor: crosshair;
+  overflow: hidden; /* Required for move and click modes */
+}
+
+.zoom-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Maintains aspect ratio */
+  display: block;
+}
+```
+
+### Wheel Zoom Container
+
+For wheel zoom mode, you typically don't need `overflow: hidden` as the zoom happens in place:
+
+```css
+.zoom-wheel-container {
+  position: relative;
+  width: 400px;
+  height: 500px;
+  cursor: crosshair;
+  transition: transform 500ms ease-in-out;
+}
+
+.zoom-wheel-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none; /* Prevent image selection during zoom */
+}
+```
+
+### Move and Click Zoom Containers
+
+These modes require `overflow: hidden` to clip the zoomed image:
+
+```css
+.zoom-move-container,
+.zoom-click-container {
+  position: relative;
+  width: 300px;
+  height: 400px;
+  cursor: crosshair;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+}
+
+.zoom-move-container img,
+.zoom-click-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none; /* Disable long-press menu on mobile */
+}
+```
+
+<Note>
+  Setting `user-select: none` prevents text/image selection during zoom interactions, providing a smoother user experience.
+</Note>
+
+## Hover Zoom Styling
+
+Hover zoom mode has unique styling requirements for the zoom lens and target elements.
+
+### Zoom Lens Styling
+
+The zoom lens is the overlay that appears on the source image to indicate the zoomed area.
+
+#### Default Lens
+
+If you don't provide a custom class, the library applies a default semi-transparent background:
+
+```javascript
+createZoomImageHover(container, {
+  zoomTarget: target,
+  customZoom: { width: 300, height: 500 },
+  scale: 2,
+});
+```
+
+Default styling from the library:
+```css
+/* Applied automatically if no zoomLensClass is provided */
+.zoom-lens {
+  background: rgba(238, 130, 238, 0.5);
+}
+```
+
+#### Custom Lens Styling
+
+Provide your own styling with `zoomLensClass`:
+
+```javascript
+createZoomImageHover(container, {
+  zoomTarget: target,
+  customZoom: { width: 300, height: 500 },
+  scale: 2,
+  zoomLensClass: "custom-zoom-lens",
+});
+```
+
+```css
+.custom-zoom-lens {
+  border: 2px solid #6366f1;
+  background: rgba(99, 102, 241, 0.15);
+  backdrop-filter: blur(2px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+}
+
+/* Alternative: No background, just border */
+.lens-border-only {
+  border: 3px solid #ffffff;
+  box-shadow: 
+    0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 0 10px rgba(0, 0, 0, 0.2);
+  background: transparent;
+}
+
+/* Alternative: Inverted effect */
+.lens-inverted {
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px dashed #ffffff;
+  mix-blend-mode: difference;
+}
+```
+
+<Tip>
+  Use `backdrop-filter` for modern blur effects, but provide a fallback for browsers that don't support it.
+</Tip>
+
+### Zoom Target Styling
+
+The zoom target displays the magnified image.
+
+```css
+.zoom-target {
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  background: white;
+  overflow: hidden;
+}
+
+/* Add a subtle animation when the target appears */
+.zoom-target-animated {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: 
+    opacity 200ms ease-out,
+    transform 200ms ease-out;
+}
+
+.zoom-target-animated.active {
+  opacity: 1;
+  transform: scale(1);
+}
+```
+
+Apply the animated class using `zoomTargetClass`:
+
+```javascript
+createZoomImageHover(container, {
+  zoomTarget: target,
+  customZoom: { width: 300, height: 500 },
+  scale: 2,
+  zoomTargetClass: "zoom-target-animated active",
+});
+```
+
+## Responsive Design
+
+### Mobile-First Approach
+
+```css
+/* Mobile: Full width */
+.zoom-container {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  cursor: pointer; /* Touch devices don't show crosshair */
+}
+
+/* Tablet: Fixed size */
+@media (min-width: 768px) {
+  .zoom-container {
+    width: 400px;
+    height: 500px;
+    cursor: crosshair;
+  }
+}
+
+/* Desktop: Larger size with hover target */
+@media (min-width: 1024px) {
+  .zoom-container {
+    width: 500px;
+    height: 600px;
+  }
+  
+  .zoom-hover-layout {
+    display: flex;
+    gap: 2rem;
+  }
+  
+  .zoom-target {
+    width: 400px;
+    height: 600px;
+  }
+}
+```
+
+### Touch Device Optimizations
+
+```css
+/* Larger hit areas for touch */
+@media (hover: none) and (pointer: coarse) {
+  .zoom-controls button {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1rem;
+  }
+  
+  /* Prevent text selection on touch devices */
+  .zoom-container {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  
+  /* Remove hover effects */
+  .zoom-container:hover {
+    /* No hover state on touch devices */
+  }
+}
+```
+
+## Advanced Visual Effects
+
+### Loading State
+
+Style images while they're loading:
+
+```css
+.zoom-container {
+  background: #f3f4f6;
+  position: relative;
+}
+
+.zoom-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    #f3f4f6 0%,
+    #e5e7eb 50%,
+    #f3f4f6 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+  opacity: 0;
+  transition: opacity 200ms;
+}
+
+.zoom-container[data-loading="true"]::before {
+  opacity: 1;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+```
+
+```javascript
+// Set loading state
+const container = document.getElementById("container");
+container.dataset.loading = "true";
+
+const result = createZoomImageWheel(container);
+
+result.subscribe(({ state }) => {
+  if (state.zoomedImgStatus === "loaded") {
+    container.dataset.loading = "false";
+  }
+});
+```
+
+### Smooth Transitions
+
+```css
+.zoom-wheel-container img {
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+/* Smooth rotation */
+.zoom-wheel-container {
+  transition: rotate 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smoother zoom for move/click modes */
+.zoom-move-container img,
+.zoom-click-container img {
+  transition: transform 100ms linear;
+}
+```
+
+<Warning>
+  Use `will-change` sparingly. Only apply it to elements that are actively being transformed to avoid performance issues.
+</Warning>
+
+### Dark Mode Support
+
+```css
+/* Light mode (default) */
+.zoom-container {
+  background: white;
+  border: 1px solid #e5e7eb;
+}
+
+.zoom-target {
+  background: white;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.custom-zoom-lens {
+  border: 2px solid #6366f1;
+  background: rgba(99, 102, 241, 0.15);
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .zoom-container {
+    background: #1f2937;
+    border: 1px solid #374151;
+  }
+  
+  .zoom-target {
+    background: #1f2937;
+    border: 1px solid #4b5563;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+  }
+  
+  .custom-zoom-lens {
+    border: 2px solid #818cf8;
+    background: rgba(129, 140, 248, 0.25);
+  }
+}
+
+/* Or use a class-based approach */
+.dark .zoom-container {
+  background: #1f2937;
+  border: 1px solid #374151;
+}
+```
+
+## Control Buttons Styling
+
+Style zoom control buttons for a polished interface:
+
+```css
+.zoom-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.zoom-btn {
+  padding: 0.625rem 1.25rem;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 150ms;
+  user-select: none;
+}
+
+.zoom-btn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.zoom-btn:active {
+  background: #f3f4f6;
+  transform: scale(0.98);
+}
+
+.zoom-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Icon buttons */
+.zoom-btn-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+/* Primary action button */
+.zoom-btn-primary {
+  background: #6366f1;
+  color: white;
+  border-color: #6366f1;
+}
+
+.zoom-btn-primary:hover {
+  background: #4f46e5;
+  border-color: #4f46e5;
+}
+```
+
+## Layout Patterns
+
+### Side-by-Side Layout (Desktop)
+
+```css
+.zoom-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.zoom-layout .zoom-container {
+  flex-shrink: 0;
+}
+
+.zoom-layout .zoom-target {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .zoom-layout {
+    flex-direction: column;
+  }
+}
+```
+
+### Fullscreen Overlay
+
+```css
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 2rem;
+}
+
+.zoom-overlay .zoom-container {
+  max-width: 90vw;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+}
+
+.zoom-overlay-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 3rem;
+  height: 3rem;
+  background: white;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  transition: transform 150ms;
+}
+
+.zoom-overlay-close:hover {
+  transform: scale(1.1);
+}
+```
+
+## Performance Considerations
+
+<AccordionGroup>
+  <Accordion title="Use CSS transforms over position properties">
+    Transforms are hardware-accelerated and perform better:
+    
+    ```css
+    /* Good */
+    .zoom-image {
+      transform: translate(100px, 100px) scale(2);
+    }
+    
+    /* Avoid */
+    .zoom-image {
+      left: 100px;
+      top: 100px;
+      width: 200%;
+      height: 200%;
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Minimize repaints and reflows">
+    Avoid changing properties that trigger layout recalculation:
+    
+    ```css
+    /* Properties that don't trigger layout */
+    .zoom-container {
+      transform: scale(1.5);
+      opacity: 0.9;
+    }
+    
+    /* Avoid changing these during zoom */
+    .zoom-container {
+      /* width, height, margin, padding, border */
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Use CSS containment">
+    Help the browser optimize rendering:
+    
+    ```css
+    .zoom-container {
+      contain: layout style paint;
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Complete Example
+
+Here's a complete example combining multiple styling techniques:
+
+```html
+<div class="product-zoom-wrapper">
+  <div id="zoom-container" class="zoom-container" data-loading="true">
+    <img src="/product.jpg" alt="Product" />
+  </div>
+  
+  <div class="zoom-controls">
+    <button class="zoom-btn zoom-btn-icon" id="zoom-in">
+      <svg><!-- plus icon --></svg>
+    </button>
+    <button class="zoom-btn zoom-btn-icon" id="zoom-out">
+      <svg><!-- minus icon --></svg>
+    </button>
+    <button class="zoom-btn" id="rotate">Rotate</button>
+    <button class="zoom-btn zoom-btn-primary" id="crop">Crop</button>
+  </div>
+  
+  <p class="zoom-info">Scroll to zoom • Drag to pan</p>
+</div>
+```
+
+```css
+.product-zoom-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 500px;
+}
+
+.zoom-container {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+.zoom-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Loading shimmer */
+.zoom-container[data-loading="true"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.zoom-info {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+@media (prefers-color-scheme: dark) {
+  .zoom-container {
+    background: #1f2937;
+    border-color: #374151;
+  }
+  
+  .zoom-info {
+    color: #9ca3af;
+  }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration Guide" icon="sliders" href="/guides/configuration">
+    Learn about all available configuration options
+  </Card>
+  <Card title="Advanced Usage" icon="rocket" href="/guides/advanced-usage">
+    Explore advanced patterns and techniques
+  </Card>
+</CardGroup>

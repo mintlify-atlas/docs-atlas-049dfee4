@@ -1,0 +1,162 @@
+---
+title: 'cropImage'
+description: 'Crop and rotate a zoomed image, then export it as a data URL'
+---
+
+## Function Signature
+
+```typescript
+cropImage({
+  currentZoom: number,
+  image: HTMLImageElement,
+  positionX: number,
+  positionY: number,
+  rotation?: number
+}): Promise<string>
+```
+
+## Description
+
+The `cropImage` function captures the currently visible portion of a zoomed image and exports it as a base64-encoded data URL. It accounts for the current zoom level, position, and optional rotation, making it useful for implementing "save current view" or "export cropped image" features.
+
+## Parameters
+
+<ParamField path="currentZoom" type="number" required>
+  The current zoom level of the image. A value of `1` represents the original size, while `2` represents 2x zoom.
+</ParamField>
+
+<ParamField path="image" type="HTMLImageElement" required>
+  The HTML image element to crop. This should be the zoomed image element.
+</ParamField>
+
+<ParamField path="positionX" type="number" required>
+  The horizontal position offset in pixels. This represents how far the image has been panned horizontally.
+</ParamField>
+
+<ParamField path="positionY" type="number" required>
+  The vertical position offset in pixels. This represents how far the image has been panned vertically.
+</ParamField>
+
+<ParamField path="rotation" type="number" default="0">
+  The rotation angle in degrees. Supports `0`, `90`, `180`, or `270` degrees. The value is normalized using modulo 360.
+</ParamField>
+
+## Return Value
+
+<ResponseField name="dataURL" type="Promise<string>">
+  A promise that resolves to a base64-encoded data URL of the cropped image. The format is `data:image/png;base64,...` and can be used directly as an image source or downloaded.
+</ResponseField>
+
+## How It Works
+
+1. **Calculate Scale**: Computes the scale factor based on the image's natural dimensions and current display size
+2. **Create Canvas**: Creates an HTML canvas element matching the visible area dimensions
+3. **Crop Image**: Draws the visible portion of the image onto the canvas
+4. **Apply Rotation**: If rotation is specified, applies the transformation on a second canvas
+5. **Export Data**: Converts the final canvas to a data URL
+
+## Usage Examples
+
+### Basic Cropping
+
+```typescript
+import { cropImage } from '@zoom-image/core'
+
+const imageElement = document.querySelector('img')
+const currentZoom = 2.5
+const positionX = -100
+const positionY = -50
+
+const dataURL = await cropImage({
+  image: imageElement,
+  currentZoom,
+  positionX,
+  positionY
+})
+
+// Use the data URL
+const croppedImage = new Image()
+croppedImage.src = dataURL
+```
+
+### Cropping with Rotation
+
+```typescript
+import { cropImage } from '@zoom-image/core'
+
+const imageElement = document.querySelector('img')
+
+const dataURL = await cropImage({
+  image: imageElement,
+  currentZoom: 1.5,
+  positionX: -200,
+  positionY: -100,
+  rotation: 90 // Rotate 90 degrees clockwise
+})
+
+console.log(dataURL) // "data:image/png;base64,..."
+```
+
+### Download Cropped Image
+
+```typescript
+import { cropImage } from '@zoom-image/core'
+
+async function downloadCroppedImage(state) {
+  const dataURL = await cropImage({
+    image: state.image,
+    currentZoom: state.currentZoom,
+    positionX: state.positionX,
+    positionY: state.positionY,
+    rotation: state.rotation
+  })
+
+  // Create download link
+  const link = document.createElement('a')
+  link.href = dataURL
+  link.download = 'cropped-image.png'
+  link.click()
+}
+```
+
+### Integration with Zoom State
+
+```typescript
+import { createZoomImageWheel, cropImage } from '@zoom-image/core'
+
+const { zoomImageState, cleanup } = createZoomImageWheel(containerElement, {
+  maxZoom: 4
+})
+
+// Export button handler
+exportButton.addEventListener('click', async () => {
+  const state = zoomImageState()
+  
+  const croppedDataURL = await cropImage({
+    image: state.image,
+    currentZoom: state.currentZoom,
+    positionX: state.positionX,
+    positionY: state.positionY
+  })
+  
+  // Display or download the cropped image
+  const preview = document.querySelector('#preview')
+  preview.src = croppedDataURL
+})
+```
+
+## Use Cases
+
+- **Export Current View**: Allow users to save the exact portion of an image they're viewing
+- **Image Editing Tools**: Implement crop functionality in image editors
+- **Profile Picture Crop**: Let users select and crop a portion of an uploaded image
+- **Screenshot Features**: Capture specific areas of zoomable images
+- **Print Preview**: Generate a croppable preview of images before printing
+
+## Technical Notes
+
+- The function uses HTML Canvas API for image manipulation
+- Rotation is applied after cropping to maintain accuracy
+- The scale calculation accounts for both natural and display dimensions
+- Supports rotation angles of 90 and 270 degrees with dimension swapping
+- Returns PNG format by default via `canvas.toDataURL()`

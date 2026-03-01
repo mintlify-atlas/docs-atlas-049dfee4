@@ -1,0 +1,360 @@
+---
+title: Angular
+description: Angular services for implementing zoom image functionality in your Angular applications
+---
+
+The Angular adapter provides injectable services that wrap the core zoom-image functionality for seamless integration with Angular applications.
+
+## Installation
+
+```bash
+npm install @zoom-image/angular
+```
+
+## Available Services
+
+The Angular adapter exports four services, one for each zoom mode:
+
+- `ZoomImageWheelService` - Zoom with mouse wheel/pinch gestures
+- `ZoomImageHoverService` - Zoom on hover with a separate zoom target
+- `ZoomImageMoveService` - Zoom follows mouse/touch movement
+- `ZoomImageClickService` - Toggle zoom on click
+
+## Service API
+
+Each service provides:
+
+- `createZoomImage()` - Method to initialize zoom on a container element
+- `zoomImageState$` - Observable of the current state
+- `zoomImageState` - Current state value
+- `setZoomImageState()` - Method to update state (available for wheel and hover)
+
+## Wheel Zoom
+
+Zoom in and out using the mouse wheel or pinch gestures. Supports programmatic zoom control, rotation, and image cropping.
+
+### Basic Example
+
+```typescript
+import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core'
+import { ZoomImageWheelService } from '@zoom-image/angular'
+import { ZoomImageWheelState } from '@zoom-image/core'
+
+@Component({
+  selector: 'app-wheel-zoom',
+  template: `
+    <div>
+      <p>Current zoom: {{ getCurrentZoom() }}</p>
+      <div #container class="h-[300px] w-[200px]">
+        <img class="h-full w-full" src="/image.jpg" alt="Zoomable" />
+      </div>
+    </div>
+  `,
+  providers: [ZoomImageWheelService],
+})
+export class WheelZoomComponent implements AfterViewInit {
+  @ViewChild('container') containerRef?: ElementRef<HTMLDivElement>
+  
+  zoomImageState: ZoomImageWheelState
+
+  constructor(private zoomService: ZoomImageWheelService) {
+    this.zoomImageState = this.zoomService.zoomImageState
+  }
+
+  ngAfterViewInit() {
+    if (this.containerRef) {
+      this.zoomService.createZoomImage(this.containerRef.nativeElement)
+      
+      this.zoomService.zoomImageState$.subscribe((state) => {
+        this.zoomImageState = state
+      })
+    }
+  }
+
+  getCurrentZoom() {
+    return `${Math.round(this.zoomImageState.currentZoom * 100)}%`
+  }
+}
+```
+
+### Complete Example with Controls
+
+```typescript
+import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core'
+import { CommonModule } from '@angular/common'
+import { ZoomImageWheelService } from '@zoom-image/angular'
+import { ZoomImageWheelState, cropImage } from '@zoom-image/core'
+
+@Component({
+  selector: 'app-advanced-wheel-zoom',
+  template: `
+    <div>
+      <div class="flex gap-4">
+        <div #container class="h-[300px] w-[200px]">
+          <img class="h-full w-full" src="/image.jpg" alt="Zoomable" />
+        </div>
+        <img 
+          *ngIf="croppedImage" 
+          [src]="croppedImage" 
+          alt="Cropped" 
+          class="h-[300px] w-[200px]" 
+        />
+      </div>
+      
+      <div class="flex gap-2 mt-4">
+        <button (click)="zoomIn()">Zoom In</button>
+        <button (click)="zoomOut()">Zoom Out</button>
+        <button (click)="rotate()">Rotate</button>
+        <button (click)="handleCrop()">Crop Image</button>
+      </div>
+    </div>
+  `,
+  providers: [ZoomImageWheelService],
+  imports: [CommonModule],
+})
+export class AdvancedWheelZoomComponent implements AfterViewInit {
+  @ViewChild('container') containerRef?: ElementRef<HTMLDivElement>
+  
+  zoomImageState: ZoomImageWheelState
+  croppedImage: string = ''
+
+  constructor(private zoomService: ZoomImageWheelService) {
+    this.zoomImageState = this.zoomService.zoomImageState
+  }
+
+  ngAfterViewInit() {
+    if (this.containerRef) {
+      this.zoomService.createZoomImage(this.containerRef.nativeElement)
+      
+      this.zoomService.zoomImageState$.subscribe((state) => {
+        this.zoomImageState = state
+      })
+    }
+  }
+
+  zoomIn() {
+    this.zoomService.setZoomImageState({
+      currentZoom: this.zoomImageState.currentZoom + 0.5,
+    })
+  }
+
+  zoomOut() {
+    this.zoomService.setZoomImageState({
+      currentZoom: this.zoomImageState.currentZoom - 0.5,
+    })
+  }
+
+  rotate() {
+    this.zoomService.setZoomImageState({
+      currentRotation: this.zoomImageState.currentRotation + 90,
+    })
+  }
+
+  async handleCrop() {
+    this.croppedImage = await cropImage({
+      currentZoom: this.zoomImageState.currentZoom,
+      image: this.containerRef?.nativeElement.querySelector('img') as HTMLImageElement,
+      positionX: this.zoomImageState.currentPositionX,
+      positionY: this.zoomImageState.currentPositionY,
+      rotation: this.zoomImageState.currentRotation,
+    })
+  }
+}
+```
+
+### State Properties
+
+- `currentZoom: number` - Current zoom level (1 = 100%)
+- `enable: boolean` - Whether zoom is enabled
+- `currentPositionX: number` - X position offset
+- `currentPositionY: number` - Y position offset
+- `currentRotation: number` - Rotation angle in degrees
+
+## Hover Zoom
+
+Display a zoomed version in a separate container when hovering over the image.
+
+### Basic Example
+
+```typescript
+import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core'
+import { ZoomImageHoverService } from '@zoom-image/angular'
+
+@Component({
+  selector: 'app-hover-zoom',
+  template: `
+    <div class="relative flex">
+      <div #container class="h-[300px] w-[200px]">
+        <img class="h-full w-full" src="/image.jpg" alt="Hover to zoom" />
+      </div>
+      <div #zoomTarget class="absolute left-[350px]"></div>
+    </div>
+  `,
+  providers: [ZoomImageHoverService],
+})
+export class HoverZoomComponent implements AfterViewInit {
+  @ViewChild('container') containerRef?: ElementRef<HTMLDivElement>
+  @ViewChild('zoomTarget') zoomTargetRef?: ElementRef<HTMLDivElement>
+
+  constructor(private zoomService: ZoomImageHoverService) {}
+
+  ngAfterViewInit() {
+    if (this.containerRef && this.zoomTargetRef) {
+      this.zoomService.createZoomImage(
+        this.containerRef.nativeElement,
+        {
+          zoomImageSource: '/image-large.jpg',
+          customZoom: { width: 300, height: 500 },
+          zoomTarget: this.zoomTargetRef.nativeElement,
+          scale: 2,
+        }
+      )
+    }
+  }
+}
+```
+
+### State Properties
+
+- `enabled: boolean` - Whether hover is active
+- `zoomedImgStatus: string` - Loading status ("idle" | "loading" | "loaded")
+
+## Move Zoom
+
+Zoom follows the mouse or touch movement within the image container.
+
+### Basic Example
+
+```typescript
+import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core'
+import { ZoomImageMoveService } from '@zoom-image/angular'
+
+@Component({
+  selector: 'app-move-zoom',
+  template: `
+    <div 
+      #container 
+      class="relative h-[300px] w-[200px] overflow-hidden cursor-crosshair"
+    >
+      <img class="h-full w-full" src="/image.jpg" alt="Move to zoom" />
+    </div>
+  `,
+  providers: [ZoomImageMoveService],
+})
+export class MoveZoomComponent implements AfterViewInit {
+  @ViewChild('container') containerRef?: ElementRef<HTMLDivElement>
+
+  constructor(private zoomService: ZoomImageMoveService) {}
+
+  ngAfterViewInit() {
+    if (this.containerRef) {
+      this.zoomService.createZoomImage(
+        this.containerRef.nativeElement,
+        {
+          zoomImageSource: '/image-large.jpg',
+        }
+      )
+    }
+  }
+}
+```
+
+### State Properties
+
+- `zoomedImgStatus: string` - Loading status ("idle" | "loading" | "loaded")
+
+## Click Zoom
+
+Toggle between zoomed and normal states by clicking the image.
+
+### Basic Example
+
+```typescript
+import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core'
+import { ZoomImageClickService } from '@zoom-image/angular'
+
+@Component({
+  selector: 'app-click-zoom',
+  template: `
+    <div 
+      #container 
+      class="relative h-[300px] w-[200px] overflow-hidden cursor-crosshair"
+    >
+      <img class="h-full w-full" src="/image.jpg" alt="Click to zoom" />
+    </div>
+  `,
+  providers: [ZoomImageClickService],
+})
+export class ClickZoomComponent implements AfterViewInit {
+  @ViewChild('container') containerRef?: ElementRef<HTMLDivElement>
+
+  constructor(private zoomService: ZoomImageClickService) {}
+
+  ngAfterViewInit() {
+    if (this.containerRef) {
+      this.zoomService.createZoomImage(
+        this.containerRef.nativeElement,
+        {
+          zoomImageSource: '/image-large.jpg',
+        }
+      )
+    }
+  }
+}
+```
+
+### State Properties
+
+- `zoomedImgStatus: string` - Loading status ("idle" | "loading" | "loaded")
+
+## TypeScript Support
+
+All services are fully typed. Import types from `@zoom-image/core`:
+
+```typescript
+import type { 
+  ZoomImageWheelState,
+  ZoomImageHoverState,
+  ZoomImageMoveState,
+  ZoomImageClickState 
+} from '@zoom-image/core'
+```
+
+## RxJS Observables
+
+Each service exposes state through RxJS observables (`zoomImageState$`). You can use standard RxJS operators:
+
+```typescript
+import { map, filter } from 'rxjs/operators'
+
+ngAfterViewInit() {
+  this.zoomService.zoomImageState$
+    .pipe(
+      map(state => state.currentZoom),
+      filter(zoom => zoom > 1)
+    )
+    .subscribe(zoom => {
+      console.log('Zoomed in:', zoom)
+    })
+}
+```
+
+## Service Providers
+
+Remember to add the service to your component's `providers` array:
+
+```typescript
+@Component({
+  selector: 'app-my-component',
+  providers: [ZoomImageWheelService], // Add service here
+})
+```
+
+## Cleanup
+
+All services implement `OnDestroy` and automatically clean up when the component is destroyed.
+
+## Live Examples
+
+See the Angular adapter in action:
+- [Angular Example](https://github.com/willnguyen1312/zoom-image/tree/main/examples/with-angular)

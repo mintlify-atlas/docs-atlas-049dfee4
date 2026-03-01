@@ -1,0 +1,262 @@
+---
+title: 'makeCalculatePercentage'
+description: 'Create a function that converts zoom levels to percentage values'
+---
+
+## Function Signature
+
+```typescript
+makeCalculatePercentage(maxZoom: number): (zoomLevel: number) => number
+```
+
+## Description
+
+The `makeCalculatePercentage` function creates a calculator function that converts zoom levels (1 to maxZoom) to percentage values (0-100). This is the inverse of `makeCalculateZoom` and is useful for displaying current zoom state as a percentage in UI elements like sliders, labels, or progress bars.
+
+## Parameters
+
+<ParamField path="maxZoom" type="number" required>
+  The maximum zoom level. For example, if `maxZoom` is `4`, zoom levels will range from `1` (100% original size) to `4` (400% zoom), corresponding to 0-100%.
+</ParamField>
+
+## Return Value
+
+<ResponseField name="calculatePercentage" type="(zoomLevel: number) => number">
+  A function that takes a zoom level (1 to maxZoom) and returns the corresponding percentage value (0-100).
+  
+  - **Input**: Zoom level from `1` to `maxZoom`
+  - **Output**: Percentage from `0` to `100`
+  - Zoom level `1` maps to `0%` (no zoom)
+  - Zoom level `maxZoom` maps to `100%` (maximum zoom)
+</ResponseField>
+
+## How It Works
+
+The function uses linear interpolation (scale linear) to map the zoom domain [1, maxZoom] to the percentage range [0, 100]. The underlying implementation uses the formula:
+
+```
+percentage = ((zoomLevel - 1) / (maxZoom - 1)) * 100
+```
+
+## Usage Examples
+
+### Basic Usage
+
+```typescript
+import { makeCalculatePercentage } from '@zoom-image/core'
+
+// Create calculator for max zoom of 4x
+const calculatePercentage = makeCalculatePercentage(4)
+
+// Convert zoom levels to percentages
+console.log(calculatePercentage(1))    // 0 (no zoom)
+console.log(calculatePercentage(1.75)) // 25
+console.log(calculatePercentage(2.5))  // 50 (halfway)
+console.log(calculatePercentage(3.25)) // 75
+console.log(calculatePercentage(4))    // 100 (max zoom)
+```
+
+### Display Current Zoom Percentage
+
+```typescript
+import { createZoomImageWheel, makeCalculatePercentage } from '@zoom-image/core'
+
+const maxZoom = 5
+const calculatePercentage = makeCalculatePercentage(maxZoom)
+
+const { zoomImageState } = createZoomImageWheel(containerElement, { maxZoom })
+
+// Update display when zoom changes
+function updateZoomDisplay() {
+  const state = zoomImageState()
+  const percentage = calculatePercentage(state.currentZoom)
+  
+  document.querySelector('#zoom-level').textContent = 
+    `Zoom: ${Math.round(percentage)}%`
+}
+
+// Call on zoom events
+containerElement.addEventListener('wheel', updateZoomDisplay)
+```
+
+### Sync Slider with Zoom State
+
+```typescript
+import { createZoomImageWheel, makeCalculatePercentage } from '@zoom-image/core'
+
+const maxZoom = 4
+const calculatePercentage = makeCalculatePercentage(maxZoom)
+
+const { zoomImageState } = createZoomImageWheel(containerElement, { maxZoom })
+const slider = document.querySelector('#zoom-slider')
+
+// Update slider when user zooms with mouse wheel
+containerElement.addEventListener('wheel', () => {
+  const state = zoomImageState()
+  const percentage = calculatePercentage(state.currentZoom)
+  slider.value = percentage
+})
+```
+
+### Zoom Level Indicator
+
+```typescript
+import { createZoomImageWheel, makeCalculatePercentage } from '@zoom-image/core'
+
+const maxZoom = 3
+const calculatePercentage = makeCalculatePercentage(maxZoom)
+
+const { zoomImageState } = createZoomImageWheel(containerElement, { maxZoom })
+
+function createZoomIndicator() {
+  const state = zoomImageState()
+  const percentage = calculatePercentage(state.currentZoom)
+  const actualZoom = state.currentZoom
+  
+  return {
+    percentage: Math.round(percentage),
+    zoom: actualZoom.toFixed(2),
+    display: `${actualZoom.toFixed(1)}x (${Math.round(percentage)}%)`
+  }
+}
+
+console.log(createZoomIndicator())
+// { percentage: 50, zoom: '2.00', display: '2.0x (50%)' }
+```
+
+### Progress Bar Animation
+
+```typescript
+import { createZoomImageWheel, makeCalculatePercentage } from '@zoom-image/core'
+
+const maxZoom = 4
+const calculatePercentage = makeCalculatePercentage(maxZoom)
+
+const { zoomImageState } = createZoomImageWheel(containerElement, { maxZoom })
+const progressBar = document.querySelector('#progress-bar')
+const progressText = document.querySelector('#progress-text')
+
+function updateProgress() {
+  const state = zoomImageState()
+  const percentage = calculatePercentage(state.currentZoom)
+  
+  // Animate progress bar
+  progressBar.style.width = `${percentage}%`
+  progressText.textContent = `${Math.round(percentage)}%`
+  
+  // Add visual feedback for zoom levels
+  if (percentage < 33) {
+    progressBar.className = 'low'
+  } else if (percentage < 66) {
+    progressBar.className = 'medium'
+  } else {
+    progressBar.className = 'high'
+  }
+}
+
+containerElement.addEventListener('wheel', updateProgress)
+```
+
+### Zoom Range Validation
+
+```typescript
+import { makeCalculatePercentage } from '@zoom-image/core'
+
+const maxZoom = 5
+const calculatePercentage = makeCalculatePercentage(maxZoom)
+
+function validateZoomLevel(zoomLevel) {
+  const percentage = calculatePercentage(zoomLevel)
+  
+  if (percentage < 0) {
+    console.warn('Zoom level below minimum')
+    return false
+  }
+  
+  if (percentage > 100) {
+    console.warn('Zoom level exceeds maximum')
+    return false
+  }
+  
+  return true
+}
+
+console.log(validateZoomLevel(3))   // true
+console.log(validateZoomLevel(0.5)) // false - below minimum
+console.log(validateZoomLevel(6))   // false - exceeds maximum
+```
+
+### Bidirectional Zoom Control
+
+```typescript
+import { makeCalculateZoom, makeCalculatePercentage } from '@zoom-image/core'
+
+const maxZoom = 4
+
+// Create both converters
+const calculateZoom = makeCalculateZoom(maxZoom)
+const calculatePercentage = makeCalculatePercentage(maxZoom)
+
+// Zoom to percentage
+const currentZoom = 2.5
+const displayPercentage = calculatePercentage(currentZoom)
+console.log(`${currentZoom}x zoom = ${displayPercentage}%`)
+
+// Percentage to zoom (using the inverse function)
+const percentage = 75
+const zoom = calculateZoom(percentage)
+console.log(`${percentage}% = ${zoom}x zoom`)
+
+// Verify they're inverses
+const originalZoom = 3.0
+const converted = calculateZoom(calculatePercentage(originalZoom))
+console.log(originalZoom === converted) // true
+```
+
+### Analytics and Monitoring
+
+```typescript
+import { createZoomImageWheel, makeCalculatePercentage } from '@zoom-image/core'
+
+const maxZoom = 4
+const calculatePercentage = makeCalculatePercentage(maxZoom)
+
+const { zoomImageState } = createZoomImageWheel(containerElement, { maxZoom })
+
+function trackZoomUsage() {
+  const state = zoomImageState()
+  const percentage = calculatePercentage(state.currentZoom)
+  
+  // Send analytics
+  analytics.track('zoom_changed', {
+    zoom_level: state.currentZoom,
+    percentage: Math.round(percentage),
+    max_zoom: maxZoom
+  })
+}
+
+containerElement.addEventListener('wheel', trackZoomUsage)
+```
+
+## Use Cases
+
+- **UI Display**: Show current zoom level as a percentage in labels or tooltips
+- **Progress Bars**: Visualize zoom progress from minimum to maximum
+- **Slider Synchronization**: Keep slider controls in sync with programmatic zoom changes
+- **Analytics**: Track zoom usage patterns as percentage values
+- **Validation**: Check if zoom levels are within acceptable ranges
+- **Accessibility**: Provide percentage-based feedback for screen readers
+- **State Management**: Store and display zoom state in a normalized format
+
+## Related Functions
+
+- [`makeCalculateZoom`](/api/make-calculate-zoom) - Inverse function that converts percentages to zoom levels
+
+## Technical Notes
+
+- Uses linear interpolation under the hood via `scaleLinear`
+- The function is the mathematical inverse of `makeCalculateZoom`
+- Zoom level `1` represents the original image size (0% zoom)
+- Zoom levels below `1` or above `maxZoom` will produce values outside the 0-100 range
+- The function is pure and has no side effects
+- Can be called multiple times with different `maxZoom` values for different zoom contexts

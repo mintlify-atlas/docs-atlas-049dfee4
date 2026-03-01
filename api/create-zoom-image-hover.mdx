@@ -1,0 +1,258 @@
+---
+title: "createZoomImageHover"
+description: "Create a magnifying lens effect that shows a zoomed portion of an image in a separate target area on hover"
+---
+
+## Overview
+
+`createZoomImageHover` creates a lens-based zoom effect where hovering over an image displays a magnified portion in a separate zoom target area. This is commonly used in e-commerce product galleries.
+
+## Function Signature
+
+```typescript
+function createZoomImageHover(
+  container: HTMLElement,
+  options: ZoomImageHoverOptions
+): {
+  cleanup: () => void
+  subscribe: (listener: Listener) => () => void
+  getState: () => ZoomImageHoverState
+  setState: (value: ZoomImageHoverStateUpdate) => void
+}
+```
+
+## Parameters
+
+<ParamField path="container" type="HTMLElement" required>
+  The HTML element that contains the source image. The function will automatically find the first `<img>` element inside this container.
+</ParamField>
+
+<ParamField path="options" type="ZoomImageHoverOptions" required>
+  Configuration options for the hover zoom behavior.
+
+  <ParamField path="options.customZoom" type="{ width: number; height: number }" required>
+    The dimensions of the zoom window where the magnified image will be displayed.
+  </ParamField>
+
+  <ParamField path="options.zoomTarget" type="HTMLElement" required>
+    The container element where the zoomed image will be rendered. This should be a separate element from the source image container.
+  </ParamField>
+
+  <ParamField path="options.zoomImageSource" type="string">
+    The URL of a higher-resolution image to display in the zoom area. Defaults to the source image's `src` attribute.
+  </ParamField>
+
+  <ParamField path="options.zoomLensClass" type="string">
+    CSS class names to apply to the zoom lens (the overlay that follows the cursor). If not provided, a default pink semi-transparent background is applied.
+  </ParamField>
+
+  <ParamField path="options.zoomLensScale" type="number" default="1">
+    Scale factor for the zoom lens size. Smaller values create a bigger zoomed image with a smaller lens. Must be positive.
+  </ParamField>
+
+  <ParamField path="options.zoomTargetClass" type="string">
+    CSS class names to add to the zoom target element when zooming is active. Useful for styling transitions or borders.
+  </ParamField>
+
+  <ParamField path="options.scale" type="number" default="2">
+    The magnification scale of the zoomed image. A value of 2 means 2x magnification.
+  </ParamField>
+
+  <ParamField path="options.disableScrollLock" type="boolean" default="false">
+    If `true`, page scrolling will not be locked when hovering over the image on touch devices.
+  </ParamField>
+
+  <ParamField path="options.zoomImageProps" type="object">
+    Additional properties for the zoomed image element.
+
+    <ParamField path="options.zoomImageProps.alt" type="string">
+      Alt text for the zoomed image element.
+    </ParamField>
+  </ParamField>
+</ParamField>
+
+## Return Value
+
+Returns an object with the following methods:
+
+<ResponseField name="cleanup" type="() => void">
+  Removes all event listeners, zoom lens, and zoomed image elements. Call this when the component unmounts.
+</ResponseField>
+
+<ResponseField name="subscribe" type="(listener: Listener) => () => void">
+  Subscribe to state changes. The listener is called when the zoomed image loading status or enabled state changes. Returns an unsubscribe function.
+
+  ```typescript
+  type Listener = (state: ZoomImageHoverState, prevState: ZoomImageHoverState) => void
+  ```
+</ResponseField>
+
+<ResponseField name="getState" type="() => ZoomImageHoverState">
+  Get the current state including the zoomed image loading status and enabled state.
+</ResponseField>
+
+<ResponseField name="setState" type="(value: ZoomImageHoverStateUpdate) => void">
+  Update the state to enable or disable the zoom functionality.
+</ResponseField>
+
+## State Types
+
+### ZoomImageHoverState
+
+```typescript
+type ZoomImageHoverState = {
+  zoomedImgStatus: ZoomedImgStatus  // "idle" | "loading" | "loaded" | "error"
+  enabled: boolean                   // Whether zoom is currently enabled
+}
+```
+
+### ZoomImageHoverStateUpdate
+
+```typescript
+type ZoomImageHoverStateUpdate = {
+  enabled: boolean  // Enable or disable zoom functionality
+}
+```
+
+### ZoomedImgStatus
+
+```typescript
+type ZoomedImgStatus = "idle" | "loading" | "loaded" | "error"
+```
+
+## Usage Examples
+
+### Basic Usage
+
+```typescript
+import { createZoomImageHover } from '@zoom-image/core'
+
+const container = document.getElementById('image-container')
+const zoomTarget = document.getElementById('zoom-area')
+
+const { cleanup } = createZoomImageHover(container, {
+  customZoom: { width: 500, height: 500 },
+  zoomTarget: zoomTarget
+})
+
+// Call cleanup when done
+cleanup()
+```
+
+### With High-Resolution Image
+
+```typescript
+const { cleanup } = createZoomImageHover(container, {
+  customZoom: { width: 600, height: 600 },
+  zoomTarget: zoomTarget,
+  zoomImageSource: '/images/product-high-res.jpg',
+  scale: 3
+})
+```
+
+### Custom Lens Styling
+
+```typescript
+// CSS
+.custom-lens {
+  border: 2px solid #007bff;
+  background: rgba(0, 123, 255, 0.2);
+  cursor: crosshair;
+}
+
+// JavaScript
+const { cleanup } = createZoomImageHover(container, {
+  customZoom: { width: 500, height: 500 },
+  zoomTarget: zoomTarget,
+  zoomLensClass: 'custom-lens',
+  zoomTargetClass: 'zoom-active',
+  zoomLensScale: 0.8
+})
+```
+
+### Subscribe to Loading State
+
+```typescript
+const { cleanup, subscribe } = createZoomImageHover(container, {
+  customZoom: { width: 500, height: 500 },
+  zoomTarget: zoomTarget,
+  zoomImageSource: '/images/large.jpg'
+})
+
+const unsubscribe = subscribe((state, prevState) => {
+  if (state.zoomedImgStatus === 'loading') {
+    console.log('Loading high-res image...')
+  } else if (state.zoomedImgStatus === 'loaded') {
+    console.log('High-res image loaded!')
+  } else if (state.zoomedImgStatus === 'error') {
+    console.error('Failed to load high-res image')
+  }
+})
+
+// Cleanup
+unsubscribe()
+cleanup()
+```
+
+### Toggle Zoom Functionality
+
+```typescript
+const { setState, getState } = createZoomImageHover(container, {
+  customZoom: { width: 500, height: 500 },
+  zoomTarget: zoomTarget
+})
+
+// Disable zoom
+setState({ enabled: false })
+
+// Re-enable zoom
+setState({ enabled: true })
+
+// Check current state
+const state = getState()
+console.log('Enabled:', state.enabled)
+console.log('Image status:', state.zoomedImgStatus)
+```
+
+### E-commerce Product Gallery
+
+```html
+<div class="product-gallery">
+  <div id="product-image" style="position: relative; width: 400px; height: 400px;">
+    <img src="product-thumb.jpg" alt="Product" />
+  </div>
+  <div id="product-zoom" style="width: 600px; height: 600px; border: 1px solid #ddd;"></div>
+</div>
+```
+
+```typescript
+const container = document.getElementById('product-image')
+const zoomTarget = document.getElementById('product-zoom')
+
+const { cleanup } = createZoomImageHover(container, {
+  customZoom: { width: 600, height: 600 },
+  zoomTarget: zoomTarget,
+  zoomImageSource: 'product-full.jpg',
+  scale: 2.5,
+  zoomLensScale: 1,
+  disableScrollLock: false
+})
+```
+
+## Features
+
+- **Lens-based zoom**: Visual lens overlay shows which area is being magnified
+- **Separate zoom area**: Magnified view appears in a dedicated target element
+- **High-res support**: Load a different, higher-resolution image for the zoom view
+- **Lazy loading**: Zoomed image only loads when user hovers
+- **Loading states**: Track image loading progress via state subscription
+- **Customizable styling**: Apply custom CSS classes to lens and zoom target
+- **Scroll lock**: Prevents page scrolling during touch interactions (optional)
+
+## Related Types
+
+- [ZoomImageHoverOptions](/api/types/zoom-image-hover-options) - Options type for hover zoom
+
+## Source Reference
+
+Implementation: `/packages/core/src/createZoomImageHover.ts:27`

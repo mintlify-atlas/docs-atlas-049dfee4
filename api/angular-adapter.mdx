@@ -1,0 +1,363 @@
+---
+title: "Angular Adapter"
+description: "Angular services for zoom image functionality with RxJS observables"
+---
+
+The Angular adapter provides injectable services for implementing zoom image functionality in Angular applications using RxJS observables.
+
+## Installation
+
+```bash
+npm install @zoom-image/angular
+```
+
+## Available Services
+
+The Angular adapter exports four injectable services that correspond to different zoom behaviors:
+
+- `ZoomImageWheelService` - Zoom with mouse wheel
+- `ZoomImageHoverService` - Zoom on hover with separate zoom target
+- `ZoomImageMoveService` - Zoom on mouse move
+- `ZoomImageClickService` - Zoom on click
+
+## ZoomImageWheelService
+
+Enables zooming with mouse wheel/trackpad scrolling.
+
+### API
+
+```typescript
+@Injectable()
+class ZoomImageWheelService implements OnDestroy {
+  readonly zoomImageState$: Observable<ZoomImageWheelState>
+  readonly zoomImageState: ZoomImageWheelState
+  
+  createZoomImage(...args: Parameters<typeof createZoomImageWheel>): void
+  setZoomImageState(state: ZoomImageWheelStateUpdate): void
+  ngOnDestroy(): void
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageWheelState {
+  currentZoom: number
+  enable: boolean
+  currentPositionX: number
+  currentPositionY: number
+  currentRotation: number
+}
+```
+
+### Example
+
+```typescript
+import { Component, ElementRef, ViewChild, AfterViewInit } from "@angular/core"
+import { ZoomImageWheelService } from "@zoom-image/angular"
+import { ZoomImageWheelState } from "@zoom-image/core"
+
+@Component({
+  selector: "app-zoom-wheel",
+  templateUrl: "./zoom-wheel.component.html",
+  providers: [ZoomImageWheelService]
+})
+export class ZoomWheelComponent implements AfterViewInit {
+  @ViewChild("imageContainer") imageContainerRef?: ElementRef<HTMLDivElement>
+  
+  zoomImageWheelState: ZoomImageWheelState
+  
+  constructor(private zoomImageWheelService: ZoomImageWheelService) {
+    this.zoomImageWheelState = this.zoomImageWheelService.zoomImageState
+  }
+  
+  ngAfterViewInit(): void {
+    if (this.imageContainerRef) {
+      this.zoomImageWheelService.createZoomImage(
+        this.imageContainerRef.nativeElement
+      )
+      
+      this.zoomImageWheelService.zoomImageState$.subscribe((state) => {
+        this.zoomImageWheelState = state
+      })
+    }
+  }
+  
+  zoomIn() {
+    this.zoomImageWheelService.setZoomImageState({
+      currentZoom: this.zoomImageWheelState.currentZoom + 0.5
+    })
+  }
+  
+  zoomOut() {
+    this.zoomImageWheelService.setZoomImageState({
+      currentZoom: this.zoomImageWheelState.currentZoom - 0.5
+    })
+  }
+  
+  rotate() {
+    this.zoomImageWheelService.setZoomImageState({
+      currentRotation: this.zoomImageWheelState.currentRotation + 90
+    })
+  }
+  
+  getCurrentZoom(): string {
+    return `${Math.round(this.zoomImageWheelState.currentZoom * 100)}%`
+  }
+}
+```
+
+```html
+<div>
+  <p>Current zoom: {{ getCurrentZoom() }}</p>
+  <p>Scroll inside the image to zoom</p>
+  
+  <div #imageContainer class="h-[300px] w-[200px]">
+    <img src="/image.jpg" alt="Zoomable image" class="h-full w-full" />
+  </div>
+  
+  <div class="flex gap-2">
+    <button (click)="zoomIn()">Zoom In</button>
+    <button (click)="zoomOut()">Zoom Out</button>
+    <button (click)="rotate()">Rotate</button>
+  </div>
+</div>
+```
+
+## ZoomImageHoverService
+
+Displays a zoomed version in a separate container when hovering over the image.
+
+### API
+
+```typescript
+@Injectable()
+class ZoomImageHoverService implements OnDestroy {
+  readonly zoomImageState$: Observable<ZoomImageHoverState>
+  readonly zoomImageState: ZoomImageHoverState
+  
+  createZoomImage(...args: Parameters<typeof createZoomImageHover>): void
+  setZoomImageState(state: ZoomImageHoverStateUpdate): void
+  ngOnDestroy(): void
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageHoverState {
+  enabled: boolean
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```typescript
+import { Component, ElementRef, ViewChild, AfterViewInit } from "@angular/core"
+import { ZoomImageHoverService } from "@zoom-image/angular"
+
+@Component({
+  selector: "app-zoom-hover",
+  templateUrl: "./zoom-hover.component.html",
+  providers: [ZoomImageHoverService]
+})
+export class ZoomHoverComponent implements AfterViewInit {
+  @ViewChild("imageContainer") imageContainerRef?: ElementRef<HTMLDivElement>
+  @ViewChild("zoomTarget") zoomTargetRef?: ElementRef<HTMLDivElement>
+  
+  constructor(private zoomImageHoverService: ZoomImageHoverService) {}
+  
+  ngAfterViewInit(): void {
+    if (this.imageContainerRef && this.zoomTargetRef) {
+      this.zoomImageHoverService.createZoomImage(
+        this.imageContainerRef.nativeElement,
+        {
+          zoomImageSource: "/image-large.jpg",
+          customZoom: { width: 400, height: 600 },
+          zoomTarget: this.zoomTargetRef.nativeElement,
+          scale: 2
+        }
+      )
+    }
+  }
+}
+```
+
+```html
+<div class="flex gap-4">
+  <div #imageContainer class="relative h-[300px] w-[200px]">
+    <img src="/image-small.jpg" alt="Hover to zoom" class="h-full w-full" />
+  </div>
+  
+  <div #zoomTarget class="absolute left-[250px]"></div>
+</div>
+```
+
+## ZoomImageMoveService
+
+Zooms the image as the mouse moves over it.
+
+### API
+
+```typescript
+@Injectable()
+class ZoomImageMoveService implements OnDestroy {
+  readonly zoomImageState$: Observable<ZoomImageMoveState>
+  readonly zoomImageState: ZoomImageMoveState
+  
+  createZoomImage(...args: Parameters<typeof createZoomImageMove>): void
+  ngOnDestroy(): void
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageMoveState {
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```typescript
+import { Component, ElementRef, ViewChild, AfterViewInit } from "@angular/core"
+import { ZoomImageMoveService } from "@zoom-image/angular"
+
+@Component({
+  selector: "app-zoom-move",
+  templateUrl: "./zoom-move.component.html",
+  providers: [ZoomImageMoveService]
+})
+export class ZoomMoveComponent implements AfterViewInit {
+  @ViewChild("imageContainer") imageContainerRef?: ElementRef<HTMLDivElement>
+  
+  constructor(private zoomImageMoveService: ZoomImageMoveService) {}
+  
+  ngAfterViewInit(): void {
+    if (this.imageContainerRef) {
+      this.zoomImageMoveService.createZoomImage(
+        this.imageContainerRef.nativeElement,
+        {
+          zoomImageSource: "/image-large.jpg"
+        }
+      )
+    }
+  }
+}
+```
+
+```html
+<div #imageContainer class="relative h-[300px] w-[200px] overflow-hidden">
+  <img src="/image.jpg" alt="Move mouse to zoom" class="h-full w-full" />
+</div>
+```
+
+## ZoomImageClickService
+
+Toggles zoom when clicking on the image.
+
+### API
+
+```typescript
+@Injectable()
+class ZoomImageClickService implements OnDestroy {
+  readonly zoomImageState$: Observable<ZoomImageClickState>
+  readonly zoomImageState: ZoomImageClickState
+  
+  createZoomImage(...args: Parameters<typeof createZoomImageClick>): void
+  ngOnDestroy(): void
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageClickState {
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```typescript
+import { Component, ElementRef, ViewChild, AfterViewInit } from "@angular/core"
+import { ZoomImageClickService } from "@zoom-image/angular"
+
+@Component({
+  selector: "app-zoom-click",
+  templateUrl: "./zoom-click.component.html",
+  providers: [ZoomImageClickService]
+})
+export class ZoomClickComponent implements AfterViewInit {
+  @ViewChild("imageContainer") imageContainerRef?: ElementRef<HTMLDivElement>
+  
+  constructor(private zoomImageClickService: ZoomImageClickService) {}
+  
+  ngAfterViewInit(): void {
+    if (this.imageContainerRef) {
+      this.zoomImageClickService.createZoomImage(
+        this.imageContainerRef.nativeElement,
+        {
+          zoomImageSource: "/image-large.jpg"
+        }
+      )
+    }
+  }
+}
+```
+
+```html
+<div #imageContainer class="relative h-[300px] w-[200px] overflow-hidden cursor-pointer">
+  <img src="/image.jpg" alt="Click to zoom" class="h-full w-full" />
+</div>
+```
+
+## Cleanup
+
+All services implement `OnDestroy` and automatically clean up when the component is destroyed. The cleanup removes event listeners and frees resources.
+
+## Dependency Injection
+
+All services must be provided in your component's `providers` array:
+
+```typescript
+@Component({
+  selector: "app-example",
+  templateUrl: "./example.component.html",
+  providers: [
+    ZoomImageWheelService,
+    ZoomImageHoverService,
+    ZoomImageMoveService,
+    ZoomImageClickService
+  ]
+})
+export class ExampleComponent {
+  // ...
+}
+```
+
+## TypeScript Support
+
+The Angular adapter is written in TypeScript and provides full type definitions. Import types from `@zoom-image/core`:
+
+```typescript
+import type {
+  ZoomImageWheelState,
+  ZoomImageWheelStateUpdate,
+  ZoomImageHoverState,
+  ZoomImageHoverStateUpdate,
+  ZoomImageMoveState,
+  ZoomImageClickState
+} from "@zoom-image/core"
+```
+
+## Related
+
+- [createZoomImageWheel](/api/create-zoom-image-wheel) - Core wheel zoom function
+- [createZoomImageHover](/api/create-zoom-image-hover) - Core hover zoom function
+- [createZoomImageMove](/api/create-zoom-image-move) - Core move zoom function
+- [createZoomImageClick](/api/create-zoom-image-click) - Core click zoom function
+- [React Adapter](/adapters/react) - React implementation
+- [Vue Adapter](/adapters/vue) - Vue implementation

@@ -1,0 +1,675 @@
+---
+title: Configuration Guide
+description: Comprehensive reference for all configuration options across different zoom modes
+---
+
+This guide documents all configuration options available for each zoom mode, including default values, types, and practical examples.
+
+## Wheel Zoom Options
+
+Wheel zoom mode supports the most configuration options, including zoom limits, rotation, and touch gestures.
+
+### `ZoomImageWheelOptions`
+
+```typescript
+type ZoomImageWheelOptions = {
+  maxZoom?: number
+  wheelZoomRatio?: number
+  dblTapAnimationDuration?: number
+  initialState?: Partial<ZoomImageWheelStateUpdate>
+  shouldZoomOnSingleTouch?: () => boolean
+  zoomTarget?: HTMLElement | null
+}
+```
+
+### `maxZoom`
+
+<ParamField path="maxZoom" type="number" default="4">
+  Maximum zoom level allowed. A value of `4` means 400% zoom.
+</ParamField>
+
+```javascript
+const result = createZoomImageWheel(container, {
+  maxZoom: 6, // Allow up to 600% zoom
+});
+```
+
+<Tip>
+  For high-resolution images, you can increase `maxZoom` to 8 or higher. For thumbnails or lower-quality images, keep it at 2-3 to avoid pixelation.
+</Tip>
+
+### `wheelZoomRatio`
+
+<ParamField path="wheelZoomRatio" type="number" default="0.1">
+  Controls how much the zoom level changes per wheel scroll. Higher values mean faster zooming.
+</ParamField>
+
+```javascript
+const result = createZoomImageWheel(container, {
+  wheelZoomRatio: 0.2, // Zoom faster
+});
+
+// Or zoom more gradually
+const result2 = createZoomImageWheel(container, {
+  wheelZoomRatio: 0.05, // Zoom slower for finer control
+});
+```
+
+### `dblTapAnimationDuration`
+
+<ParamField path="dblTapAnimationDuration" type="number" default="300">
+  Duration in milliseconds for the double-tap zoom animation on touch devices.
+</ParamField>
+
+```javascript
+const result = createZoomImageWheel(container, {
+  dblTapAnimationDuration: 500, // Slower, smoother animation
+});
+```
+
+### `initialState`
+
+<ParamField path="initialState" type="Partial<ZoomImageWheelStateUpdate>">
+  Set the initial zoom state, including zoom level and rotation.
+</ParamField>
+
+```javascript
+const result = createZoomImageWheel(container, {
+  initialState: {
+    currentZoom: 2, // Start at 200% zoom
+    currentRotation: 90, // Rotate 90 degrees
+    enable: true, // Zoom enabled by default
+  },
+});
+```
+
+Available initial state properties:
+- `enable`: `boolean` - Whether zoom is enabled
+- `currentZoom`: `number` - Initial zoom level (1 = 100%)
+- `currentRotation`: `number` - Initial rotation in degrees (0, 90, 180, 270)
+
+### `shouldZoomOnSingleTouch`
+
+<ParamField path="shouldZoomOnSingleTouch" type="() => boolean" default="() => true">
+  Function that determines whether single-touch drag should move the zoomed image. Return `false` to disable single-touch panning.
+</ParamField>
+
+```javascript
+// Disable single-touch panning (only allow two-finger pinch)
+const result = createZoomImageWheel(container, {
+  shouldZoomOnSingleTouch: () => false,
+});
+
+// Conditional behavior based on zoom level
+const result2 = createZoomImageWheel(container, {
+  shouldZoomOnSingleTouch: () => {
+    return result2.getState().currentZoom > 1;
+  },
+});
+```
+
+<Note>
+  This is particularly useful when you want to prevent conflicts with other touch gestures like scrolling.
+</Note>
+
+### `zoomTarget`
+
+<ParamField path="zoomTarget" type="HTMLElement | null">
+  The element to apply zoom transforms to. By default, it targets the `img` element inside the container.
+</ParamField>
+
+```javascript
+// Default behavior: targets the img element
+const result = createZoomImageWheel(container);
+
+// Custom target: apply transforms to a wrapper div instead
+const customTarget = container.querySelector('.zoom-target');
+const result2 = createZoomImageWheel(container, {
+  zoomTarget: customTarget,
+});
+
+// No target: manually handle transforms
+const result3 = createZoomImageWheel(container, {
+  zoomTarget: null,
+});
+
+result3.subscribe(({ state }) => {
+  // Manually apply transforms
+  const img = container.querySelector('img');
+  img.style.transform = `scale(${state.currentZoom})`;
+});
+```
+
+### Complete Example
+
+```javascript
+import { createZoomImageWheel } from "@zoom-image/core";
+
+const container = document.getElementById("container");
+
+const result = createZoomImageWheel(container, {
+  maxZoom: 8,
+  wheelZoomRatio: 0.15,
+  dblTapAnimationDuration: 400,
+  initialState: {
+    currentZoom: 1.5,
+    currentRotation: 0,
+    enable: true,
+  },
+  shouldZoomOnSingleTouch: () => true,
+  zoomTarget: container.querySelector('img'),
+});
+
+// Monitor state changes
+result.subscribe(({ state }) => {
+  console.log('Zoom:', state.currentZoom);
+  console.log('Position:', state.currentPositionX, state.currentPositionY);
+  console.log('Rotation:', state.currentRotation);
+});
+```
+
+## Hover Zoom Options
+
+Hover zoom displays a magnified image in a separate target element.
+
+### `ZoomImageHoverOptions`
+
+```typescript
+type ZoomImageHoverOptions = {
+  customZoom: { width: number; height: number }
+  zoomImageSource?: string
+  zoomLensClass?: string
+  zoomLensScale?: number
+  zoomTarget: HTMLElement
+  zoomTargetClass?: string
+  scale?: number
+  disableScrollLock?: boolean
+  zoomImageProps?: {
+    alt?: string
+  }
+}
+```
+
+### `customZoom` (Required)
+
+<ParamField path="customZoom" type="{ width: number; height: number }" required>
+  Dimensions of the zoomed image display area.
+</ParamField>
+
+```javascript
+const result = createZoomImageHover(container, {
+  zoomTarget: document.getElementById('zoom-target'),
+  customZoom: { width: 400, height: 600 },
+});
+```
+
+### `zoomTarget` (Required)
+
+<ParamField path="zoomTarget" type="HTMLElement" required>
+  The element where the zoomed image will be displayed.
+</ParamField>
+
+```javascript
+const zoomTarget = document.getElementById('zoom-target');
+
+const result = createZoomImageHover(container, {
+  zoomTarget: zoomTarget,
+  customZoom: { width: 300, height: 500 },
+});
+```
+
+### `zoomImageSource`
+
+<ParamField path="zoomImageSource" type="string">
+  URL of a higher resolution image to display in the zoom. Defaults to the source image's `src`.
+</ParamField>
+
+```javascript
+const result = createZoomImageHover(container, {
+  zoomTarget: target,
+  customZoom: { width: 400, height: 600 },
+  zoomImageSource: '/images/product-high-res.jpg', // Use high-res version
+});
+```
+
+<Tip>
+  Use a higher resolution image for `zoomImageSource` to show more detail when zoomed, while keeping the source image smaller for faster initial loading.
+</Tip>
+
+### `scale`
+
+<ParamField path="scale" type="number" default="2">
+  Magnification factor. A value of `2` means 200% zoom.
+</ParamField>
+
+```javascript
+const result = createZoomImageHover(container, {
+  zoomTarget: target,
+  customZoom: { width: 300, height: 500 },
+  scale: 3, // 300% magnification
+});
+```
+
+### `zoomLensClass`
+
+<ParamField path="zoomLensClass" type="string">
+  CSS class name(s) to apply to the zoom lens element. If not provided, a default semi-transparent background is applied.
+</ParamField>
+
+```javascript
+const result = createZoomImageHover(container, {
+  zoomTarget: target,
+  customZoom: { width: 300, height: 500 },
+  zoomLensClass: 'custom-lens border-2 border-blue-500',
+});
+```
+
+```css
+.custom-lens {
+  border: 2px solid #6366f1;
+  background: rgba(99, 102, 241, 0.2);
+  backdrop-filter: blur(2px);
+}
+```
+
+### `zoomLensScale`
+
+<ParamField path="zoomLensScale" type="number" default="1">
+  Scale factor for the zoom lens size.
+</ParamField>
+
+```javascript
+const result = createZoomImageHover(container, {
+  zoomTarget: target,
+  customZoom: { width: 300, height: 500 },
+  scale: 2,
+  zoomLensScale: 1.5, // Make lens 50% larger
+});
+```
+
+### `zoomTargetClass`
+
+<ParamField path="zoomTargetClass" type="string">
+  CSS class name(s) to apply to the zoom target when active.
+</ParamField>
+
+```javascript
+const result = createZoomImageHover(container, {
+  zoomTarget: target,
+  customZoom: { width: 300, height: 500 },
+  zoomTargetClass: 'active shadow-lg border-gray-300',
+});
+```
+
+### `disableScrollLock`
+
+<ParamField path="disableScrollLock" type="boolean" default="false">
+  When `true`, page scrolling is not disabled when hovering over the image.
+</ParamField>
+
+```javascript
+const result = createZoomImageHover(container, {
+  zoomTarget: target,
+  customZoom: { width: 300, height: 500 },
+  disableScrollLock: true, // Allow page scrolling while zooming
+});
+```
+
+### `zoomImageProps`
+
+<ParamField path="zoomImageProps" type="{ alt?: string }">
+  Properties to apply to the zoomed image element.
+</ParamField>
+
+```javascript
+const result = createZoomImageHover(container, {
+  zoomTarget: target,
+  customZoom: { width: 300, height: 500 },
+  zoomImageProps: {
+    alt: 'Zoomed view of product',
+  },
+});
+```
+
+### Complete Example
+
+```javascript
+import { createZoomImageHover } from "@zoom-image/core";
+
+const container = document.getElementById("hover-container");
+const zoomTarget = document.getElementById("zoom-target");
+
+const result = createZoomImageHover(container, {
+  zoomTarget: zoomTarget,
+  customZoom: { width: 400, height: 600 },
+  zoomImageSource: '/images/product-4k.jpg',
+  scale: 2.5,
+  zoomLensClass: 'lens-custom border-2 border-indigo-500',
+  zoomLensScale: 1.2,
+  zoomTargetClass: 'zoom-active shadow-xl',
+  disableScrollLock: false,
+  zoomImageProps: {
+    alt: 'Magnified product view',
+  },
+});
+
+// Monitor loading state
+result.subscribe(({ state }) => {
+  console.log('Zoom image status:', state.zoomedImgStatus);
+});
+```
+
+## Move Zoom Options
+
+Move zoom displays a magnified image that follows the cursor.
+
+### `ZoomImageMoveOptions`
+
+```typescript
+type ZoomImageMoveOptions = {
+  zoomFactor?: number
+  zoomImageSource?: string
+  disabledContextMenu?: boolean
+  zoomImageProps?: {
+    alt?: string
+    className?: string
+  }
+}
+```
+
+### `zoomFactor`
+
+<ParamField path="zoomFactor" type="number" default="4">
+  Magnification factor. A value of `4` means 400% zoom.
+</ParamField>
+
+```javascript
+const result = createZoomImageMove(container, {
+  zoomFactor: 6, // 600% magnification
+});
+```
+
+### `zoomImageSource`
+
+<ParamField path="zoomImageSource" type="string">
+  URL of a higher resolution image to display when zoomed. Defaults to the source image's `src`.
+</ParamField>
+
+```javascript
+const result = createZoomImageMove(container, {
+  zoomImageSource: '/images/product-high-res.jpg',
+  zoomFactor: 4,
+});
+```
+
+### `disabledContextMenu`
+
+<ParamField path="disabledContextMenu" type="boolean" default="false">
+  When `true`, disables the context menu (right-click menu) on the zoomed image and prevents long-press image saving on mobile.
+</ParamField>
+
+```javascript
+const result = createZoomImageMove(container, {
+  zoomFactor: 4,
+  disabledContextMenu: true, // Prevent right-click and long-press
+});
+```
+
+<Note>
+  This applies `-webkit-user-select: none`, `-webkit-touch-callout: none`, and `oncontextmenu = () => false` to the zoomed image.
+</Note>
+
+### `zoomImageProps`
+
+<ParamField path="zoomImageProps" type="{ alt?: string; className?: string }">
+  Properties to apply to the zoomed image element.
+</ParamField>
+
+```javascript
+const result = createZoomImageMove(container, {
+  zoomFactor: 4,
+  zoomImageProps: {
+    alt: 'Magnified view',
+    className: 'zoomed-img rounded shadow-lg',
+  },
+});
+```
+
+### Complete Example
+
+```javascript
+import { createZoomImageMove } from "@zoom-image/core";
+
+const container = document.getElementById("move-container");
+
+const result = createZoomImageMove(container, {
+  zoomFactor: 5,
+  zoomImageSource: '/images/product-ultra-hd.jpg',
+  disabledContextMenu: true,
+  zoomImageProps: {
+    alt: 'High resolution product zoom',
+    className: 'zoom-img-custom',
+  },
+});
+
+// Monitor state
+result.subscribe(({ state }) => {
+  if (state.zoomedImgStatus === 'loading') {
+    console.log('Loading high-res image...');
+  } else if (state.zoomedImgStatus === 'loaded') {
+    console.log('High-res image loaded!');
+  }
+});
+```
+
+## Click Zoom Options
+
+Click zoom activates on click and follows the cursor until clicked again.
+
+### `ZoomImageClickOptions`
+
+```typescript
+type ZoomImageClickOptions = {
+  zoomFactor?: number
+  zoomImageSource?: string
+  disableScrollLock?: boolean
+  zoomImageProps?: {
+    alt?: string
+  }
+}
+```
+
+### `zoomFactor`
+
+<ParamField path="zoomFactor" type="number" default="4">
+  Magnification factor. A value of `4` means 400% zoom.
+</ParamField>
+
+```javascript
+const result = createZoomImageClick(container, {
+  zoomFactor: 5, // 500% magnification
+});
+```
+
+### `zoomImageSource`
+
+<ParamField path="zoomImageSource" type="string">
+  URL of a higher resolution image to display when zoomed. Defaults to the source image's `src`.
+</ParamField>
+
+```javascript
+const result = createZoomImageClick(container, {
+  zoomImageSource: '/images/product-high-res.jpg',
+  zoomFactor: 4,
+});
+```
+
+### `disableScrollLock`
+
+<ParamField path="disableScrollLock" type="boolean" default="false">
+  When `true`, page scrolling is not disabled when the zoom is active.
+</ParamField>
+
+```javascript
+const result = createZoomImageClick(container, {
+  zoomFactor: 4,
+  disableScrollLock: true, // Allow scrolling while zoomed
+});
+```
+
+### `zoomImageProps`
+
+<ParamField path="zoomImageProps" type="{ alt?: string }">
+  Properties to apply to the zoomed image element.
+</ParamField>
+
+```javascript
+const result = createZoomImageClick(container, {
+  zoomFactor: 4,
+  zoomImageProps: {
+    alt: 'Click zoom view',
+  },
+});
+```
+
+### Complete Example
+
+```javascript
+import { createZoomImageClick } from "@zoom-image/core";
+
+const container = document.getElementById("click-container");
+
+const result = createZoomImageClick(container, {
+  zoomFactor: 6,
+  zoomImageSource: '/images/product-4k.jpg',
+  disableScrollLock: false,
+  zoomImageProps: {
+    alt: 'Click-activated zoom view',
+  },
+});
+
+// Monitor state
+result.subscribe(({ state }) => {
+  console.log('Image status:', state.zoomedImgStatus);
+});
+```
+
+## Common State Properties
+
+All zoom modes return an object with methods to interact with the state.
+
+### Return Value Methods
+
+<ResponseField name="cleanup" type="() => void">
+  Removes all event listeners and cleans up the zoom instance.
+</ResponseField>
+
+<ResponseField name="subscribe" type="(callback: (state) => void) => () => void">
+  Subscribes to state changes. Returns an unsubscribe function.
+</ResponseField>
+
+<ResponseField name="getState" type="() => State">
+  Returns the current state object.
+</ResponseField>
+
+<ResponseField name="setState" type="(newState: StateUpdate) => void">
+  Updates the state (only available for wheel and hover modes).
+</ResponseField>
+
+### State Objects by Mode
+
+#### Wheel Zoom State
+
+```typescript
+type ZoomImageWheelState = {
+  currentRotation: number      // Current rotation in degrees
+  currentZoom: number          // Current zoom level (1 = 100%)
+  enable: boolean              // Whether zoom is enabled
+  currentPositionX: number     // X position of the zoomed image
+  currentPositionY: number     // Y position of the zoomed image
+}
+```
+
+#### Hover Zoom State
+
+```typescript
+type ZoomImageHoverState = {
+  zoomedImgStatus: ZoomedImgStatus  // "idle" | "loading" | "loaded" | "error"
+  enabled: boolean                   // Whether zoom is enabled
+}
+```
+
+#### Move Zoom State
+
+```typescript
+type ZoomImageMoveState = {
+  zoomedImgStatus: ZoomedImgStatus  // "idle" | "loading" | "loaded" | "error"
+}
+```
+
+#### Click Zoom State
+
+```typescript
+type ZoomImageClickState = {
+  zoomedImgStatus: ZoomedImgStatus  // "idle" | "loading" | "loaded" | "error"
+}
+```
+
+## Option Dependencies
+
+Some options work together or affect each other:
+
+<AccordionGroup>
+  <Accordion title="Wheel Zoom: scale and zoomLensScale">
+    In hover zoom mode, `scale` determines the magnification level, while `zoomLensScale` controls the size of the lens overlay. They work together to create the zoom effect:
+    
+    ```javascript
+    createZoomImageHover(container, {
+      scale: 2,          // 200% magnification
+      zoomLensScale: 1,  // Normal lens size
+      customZoom: { width: 400, height: 600 },
+    });
+    ```
+    
+    The lens size is calculated as: `(customZoom.width / scale) * zoomLensScale`
+  </Accordion>
+
+  <Accordion title="Initial zoom and maxZoom">
+    If you set `initialState.currentZoom` higher than `maxZoom`, it will be clamped to `maxZoom`:
+    
+    ```javascript
+    createZoomImageWheel(container, {
+      maxZoom: 4,
+      initialState: {
+        currentZoom: 6, // Will be clamped to 4
+      },
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="zoomImageSource and image loading">
+    When using a different `zoomImageSource`, the library loads this image asynchronously. Monitor the loading state:
+    
+    ```javascript
+    const result = createZoomImageMove(container, {
+      zoomImageSource: '/large-image.jpg',
+    });
+    
+    result.subscribe(({ state }) => {
+      // States: "idle" -> "loading" -> "loaded" | "error"
+      console.log(state.zoomedImgStatus);
+    });
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Advanced Usage" icon="rocket" href="/guides/advanced-usage">
+    Learn advanced patterns and techniques
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/create-zoom-image-wheel">
+    Detailed API documentation
+  </Card>
+</CardGroup>

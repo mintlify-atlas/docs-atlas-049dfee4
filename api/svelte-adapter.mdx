@@ -1,0 +1,276 @@
+---
+title: "Svelte Adapter"
+description: "Svelte hooks for zoom image functionality with reactive stores"
+---
+
+The Svelte adapter provides reactive hooks for implementing zoom image functionality in Svelte applications using Svelte stores.
+
+## Installation
+
+```bash
+npm install @zoom-image/svelte
+```
+
+## Available Hooks
+
+The Svelte adapter exports four hooks that correspond to different zoom behaviors:
+
+- `useZoomImageWheel` - Zoom with mouse wheel
+- `useZoomImageHover` - Zoom on hover with separate zoom target
+- `useZoomImageMove` - Zoom on mouse move
+- `useZoomImageClick` - Zoom on click
+
+## useZoomImageWheel
+
+Enables zooming with mouse wheel/trackpad scrolling.
+
+### API
+
+```typescript
+function useZoomImageWheel(): {
+  createZoomImage: (...args: Parameters<typeof createZoomImageWheel>) => void
+  zoomImageState: Readable<ZoomImageWheelState>
+  setZoomImageState: (state: ZoomImageWheelStateUpdate) => void
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageWheelState {
+  currentZoom: number
+  enable: boolean
+  currentPositionX: number
+  currentPositionY: number
+  currentRotation: number
+}
+```
+
+### Example
+
+```svelte
+<script lang="ts">
+  import { useZoomImageWheel } from "@zoom-image/svelte"
+  
+  let imageContainer: HTMLDivElement
+  
+  const {
+    createZoomImage,
+    zoomImageState,
+    setZoomImageState
+  } = useZoomImageWheel()
+  
+  let currentZoom: number
+  
+  zoomImageState.subscribe((state) => {
+    currentZoom = state.currentZoom
+  })
+  
+  function handleMount() {
+    createZoomImage(imageContainer)
+  }
+  
+  function zoomIn() {
+    setZoomImageState({
+      currentZoom: currentZoom + 0.5
+    })
+  }
+  
+  function zoomOut() {
+    setZoomImageState({
+      currentZoom: currentZoom - 0.5
+    })
+  }
+  
+  function rotate() {
+    setZoomImageState({
+      currentRotation: $zoomImageState.currentRotation + 90
+    })
+  }
+</script>
+
+<div>
+  <p>Current zoom: {Math.round(currentZoom * 100)}%</p>
+  <p>Scroll inside the image to zoom</p>
+  
+  <div bind:this={imageContainer} class="h-[300px] w-[200px]" use:handleMount>
+    <img src="/image.jpg" alt="Zoomable image" class="h-full w-full" />
+  </div>
+  
+  <div class="flex gap-2">
+    <button on:click={zoomIn}>Zoom In</button>
+    <button on:click={zoomOut}>Zoom Out</button>
+    <button on:click={rotate}>Rotate</button>
+  </div>
+</div>
+```
+
+## useZoomImageHover
+
+Displays a zoomed version in a separate container when hovering over the image.
+
+### API
+
+```typescript
+function useZoomImageHover(): {
+  createZoomImage: (...args: Parameters<typeof createZoomImageHover>) => void
+  zoomImageState: Readable<ZoomImageHoverState>
+  setZoomImageState: (state: ZoomImageHoverStateUpdate) => void
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageHoverState {
+  enabled: boolean
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```svelte
+<script lang="ts">
+  import { useZoomImageHover } from "@zoom-image/svelte"
+  import { onMount } from "svelte"
+  
+  let imageContainer: HTMLDivElement
+  let zoomTarget: HTMLDivElement
+  
+  const { createZoomImage, zoomImageState } = useZoomImageHover()
+  
+  onMount(() => {
+    createZoomImage(imageContainer, {
+      zoomImageSource: "/image-large.jpg",
+      customZoom: { width: 400, height: 600 },
+      zoomTarget,
+      scale: 2
+    })
+  })
+</script>
+
+<div class="flex gap-4">
+  <div bind:this={imageContainer} class="relative h-[300px] w-[200px]">
+    <img src="/image-small.jpg" alt="Hover to zoom" class="h-full w-full" />
+  </div>
+  
+  <div bind:this={zoomTarget} class="absolute left-[250px]"></div>
+</div>
+```
+
+## useZoomImageMove
+
+Zooms the image as the mouse moves over it.
+
+### API
+
+```typescript
+function useZoomImageMove(): {
+  createZoomImage: (...args: Parameters<typeof createZoomImageMove>) => void
+  zoomImageState: Readable<ZoomImageMoveState>
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageMoveState {
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```svelte
+<script lang="ts">
+  import { useZoomImageMove } from "@zoom-image/svelte"
+  import { onMount } from "svelte"
+  
+  let imageContainer: HTMLDivElement
+  
+  const { createZoomImage, zoomImageState } = useZoomImageMove()
+  
+  onMount(() => {
+    createZoomImage(imageContainer, {
+      zoomImageSource: "/image-large.jpg"
+    })
+  })
+</script>
+
+<div bind:this={imageContainer} class="relative h-[300px] w-[200px] overflow-hidden">
+  <img src="/image.jpg" alt="Move mouse to zoom" class="h-full w-full" />
+</div>
+```
+
+## useZoomImageClick
+
+Toggles zoom when clicking on the image.
+
+### API
+
+```typescript
+function useZoomImageClick(): {
+  createZoomImage: (...args: Parameters<typeof createZoomImageClick>) => void
+  zoomImageState: Readable<ZoomImageClickState>
+}
+```
+
+### State
+
+```typescript
+interface ZoomImageClickState {
+  zoomedImgStatus: "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### Example
+
+```svelte
+<script lang="ts">
+  import { useZoomImageClick } from "@zoom-image/svelte"
+  import { onMount } from "svelte"
+  
+  let imageContainer: HTMLDivElement
+  
+  const { createZoomImage, zoomImageState } = useZoomImageClick()
+  
+  onMount(() => {
+    createZoomImage(imageContainer, {
+      zoomImageSource: "/image-large.jpg"
+    })
+  })
+</script>
+
+<div bind:this={imageContainer} class="relative h-[300px] w-[200px] overflow-hidden cursor-pointer">
+  <img src="/image.jpg" alt="Click to zoom" class="h-full w-full" />
+</div>
+```
+
+## Cleanup
+
+All hooks automatically handle cleanup when the component is destroyed using Svelte's `onDestroy` lifecycle hook. The cleanup removes event listeners and frees resources.
+
+## TypeScript Support
+
+The Svelte adapter is written in TypeScript and provides full type definitions. Import types from `@zoom-image/core`:
+
+```typescript
+import type {
+  ZoomImageWheelState,
+  ZoomImageWheelStateUpdate,
+  ZoomImageHoverState,
+  ZoomImageHoverStateUpdate,
+  ZoomImageMoveState,
+  ZoomImageClickState
+} from "@zoom-image/core"
+```
+
+## Related
+
+- [createZoomImageWheel](/api/create-zoom-image-wheel) - Core wheel zoom function
+- [createZoomImageHover](/api/create-zoom-image-hover) - Core hover zoom function
+- [createZoomImageMove](/api/create-zoom-image-move) - Core move zoom function
+- [createZoomImageClick](/api/create-zoom-image-click) - Core click zoom function
+- [React Adapter](/adapters/react) - React implementation
+- [Vue Adapter](/adapters/vue) - Vue implementation

@@ -1,0 +1,172 @@
+---
+title: "useZoomImageWheel"
+description: "React hook for enabling mouse wheel and touch-based zoom on images with pan and rotation support"
+---
+
+## Hook Signature
+
+```typescript
+function useZoomImageWheel(): {
+  createZoomImage: (
+    container: HTMLElement,
+    options?: ZoomImageWheelOptions
+  ) => void
+  zoomImageState: ZoomImageWheelState
+  getZoomImageState: () => ZoomImageWheelState | undefined
+  setZoomImageState: (state: ZoomImageWheelStateUpdate) => void
+}
+```
+
+## Return Value
+
+The hook returns an object with the following properties:
+
+<ResponseField name="createZoomImage" type="function" required>
+  Function to initialize zoom on a container element. Call this function with a container ref after the component mounts.
+  
+  <ParamField body="container" type="HTMLElement" required>
+    The container element that wraps the image element
+  </ParamField>
+  
+  <ParamField body="options" type="ZoomImageWheelOptions">
+    Configuration options for the zoom behavior
+  </ParamField>
+</ResponseField>
+
+<ResponseField name="zoomImageState" type="ZoomImageWheelState" required>
+  Reactive state object that updates when zoom changes occur
+  
+  <ParamField body="currentZoom" type="number">
+    Current zoom level (1 = 100%, 2 = 200%, etc.)
+  </ParamField>
+  
+  <ParamField body="enable" type="boolean">
+    Whether zoom functionality is currently enabled
+  </ParamField>
+  
+  <ParamField body="currentPositionX" type="number">
+    Current X position of the zoomed image in pixels
+  </ParamField>
+  
+  <ParamField body="currentPositionY" type="number">
+    Current Y position of the zoomed image in pixels
+  </ParamField>
+  
+  <ParamField body="currentRotation" type="number">
+    Current rotation angle in degrees
+  </ParamField>
+</ResponseField>
+
+<ResponseField name="getZoomImageState" type="function" required>
+  Function to get the current state imperatively. Returns the current `ZoomImageWheelState` or `undefined` if not initialized.
+</ResponseField>
+
+<ResponseField name="setZoomImageState" type="function" required>
+  Function to programmatically update the zoom state
+  
+  <ParamField body="state" type="ZoomImageWheelStateUpdate" required>
+    Partial state object to update
+  </ParamField>
+</ResponseField>
+
+## Options
+
+<ParamField path="maxZoom" type="number" default="4">
+  Maximum zoom level allowed
+</ParamField>
+
+<ParamField path="wheelZoomRatio" type="number" default="0.1">
+  Zoom sensitivity for mouse wheel events
+</ParamField>
+
+<ParamField path="dblTapAnimationDuration" type="number" default="300">
+  Duration in milliseconds for double-tap zoom animation
+</ParamField>
+
+<ParamField path="initialState" type="Partial<ZoomImageWheelStateUpdate>">
+  Initial state values for zoom, rotation, and position
+</ParamField>
+
+<ParamField path="shouldZoomOnSingleTouch" type="() => boolean">
+  Function that returns whether single-touch panning should be enabled. Defaults to always returning `true`.
+</ParamField>
+
+<ParamField path="zoomTarget" type="HTMLElement | null">
+  Specific element to apply zoom transform to. Defaults to the first `img` element inside the container.
+</ParamField>
+
+## Example
+
+```tsx
+import { useZoomImageWheel } from '@zoom-image/react'
+import { useEffect, useRef } from 'react'
+
+function ImageViewer() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const {
+    createZoomImage,
+    zoomImageState,
+    setZoomImageState,
+  } = useZoomImageWheel()
+
+  useEffect(() => {
+    if (containerRef.current) {
+      createZoomImage(containerRef.current, {
+        maxZoom: 4,
+        wheelZoomRatio: 0.1,
+      })
+    }
+  }, [])
+
+  const zoomIn = () => {
+    setZoomImageState({
+      currentZoom: zoomImageState.currentZoom + 0.5,
+    })
+  }
+
+  const zoomOut = () => {
+    setZoomImageState({
+      currentZoom: zoomImageState.currentZoom - 0.5,
+    })
+  }
+
+  const rotate = () => {
+    setZoomImageState({
+      currentRotation: zoomImageState.currentRotation + 90,
+    })
+  }
+
+  return (
+    <div>
+      <p>Current zoom: {Math.round(zoomImageState.currentZoom * 100)}%</p>
+      
+      <div 
+        ref={containerRef} 
+        className="h-[300px] w-[200px] cursor-crosshair"
+      >
+        <img 
+          className="h-full w-full" 
+          alt="Zoomable image" 
+          src="/image.jpg" 
+        />
+      </div>
+
+      <div className="flex gap-2 mt-4">
+        <button onClick={zoomIn}>Zoom In</button>
+        <button onClick={zoomOut}>Zoom Out</button>
+        <button onClick={rotate}>Rotate</button>
+      </div>
+    </div>
+  )
+}
+```
+
+## Cleanup
+
+The hook automatically cleans up event listeners and subscriptions when the component unmounts. You don't need to manually call cleanup.
+
+## See Also
+
+- [createZoomImageWheel](/api/create-zoom-image-wheel) - Core API documentation
+- [useZoomImageHover](/api/react/use-zoom-image-hover) - Hover-based zoom hook
+- [useZoomImageMove](/api/react/use-zoom-image-move) - Move-based zoom hook

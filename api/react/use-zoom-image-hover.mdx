@@ -1,0 +1,164 @@
+---
+title: "useZoomImageHover"
+description: "React hook for creating a magnifying glass effect that follows the mouse cursor"
+---
+
+## Hook Signature
+
+```typescript
+function useZoomImageHover(): {
+  createZoomImage: (
+    container: HTMLElement,
+    options: ZoomImageHoverOptions
+  ) => void
+  zoomImageState: ZoomImageHoverState
+  setZoomImageState: (state: ZoomImageHoverStateUpdate) => void
+}
+```
+
+## Return Value
+
+The hook returns an object with the following properties:
+
+<ResponseField name="createZoomImage" type="function" required>
+  Function to initialize hover zoom on a container element. Must be called with both container and options.
+  
+  <ParamField body="container" type="HTMLElement" required>
+    The container element that wraps the source image
+  </ParamField>
+  
+  <ParamField body="options" type="ZoomImageHoverOptions" required>
+    Configuration options for the hover zoom effect
+  </ParamField>
+</ResponseField>
+
+<ResponseField name="zoomImageState" type="ZoomImageHoverState" required>
+  Reactive state object that updates during hover interactions
+  
+  <ParamField body="enabled" type="boolean">
+    Whether hover zoom is currently enabled
+  </ParamField>
+  
+  <ParamField body="zoomedImgStatus" type="'idle' | 'loading' | 'loaded' | 'error'">
+    Loading status of the zoomed image
+  </ParamField>
+</ResponseField>
+
+<ResponseField name="setZoomImageState" type="function" required>
+  Function to programmatically enable or disable hover zoom
+  
+  <ParamField body="state" type="ZoomImageHoverStateUpdate" required>
+    State update object with `enabled` property
+  </ParamField>
+</ResponseField>
+
+## Options
+
+<ParamField path="zoomTarget" type="HTMLElement" required>
+  The element where the zoomed image will be displayed. This is typically positioned beside or overlaying the source image.
+</ParamField>
+
+<ParamField path="customZoom" type="{ width: number; height: number }" required>
+  Dimensions of the zoom target area in pixels
+</ParamField>
+
+<ParamField path="zoomImageSource" type="string">
+  URL of the high-resolution image to display in the zoom target. Defaults to the source image's `src`.
+</ParamField>
+
+<ParamField path="scale" type="number" default="2">
+  Magnification scale factor. A value of 2 means the zoomed image appears at 200% size.
+</ParamField>
+
+<ParamField path="zoomLensClass" type="string">
+  CSS class name(s) to apply to the hover lens overlay
+</ParamField>
+
+<ParamField path="zoomLensScale" type="number" default="1">
+  Scale factor for the lens size relative to the zoom target
+</ParamField>
+
+<ParamField path="zoomTargetClass" type="string">
+  CSS class name(s) to apply to the zoom target element when active
+</ParamField>
+
+<ParamField path="disableScrollLock" type="boolean" default="false">
+  If `true`, allows page scrolling while hovering over the image
+</ParamField>
+
+<ParamField path="zoomImageProps" type="object">
+  Additional props for the zoomed image element
+  
+  <ParamField path="zoomImageProps.alt" type="string">
+    Alt text for the zoomed image
+  </ParamField>
+</ParamField>
+
+## Example
+
+```tsx
+import { useZoomImageHover } from '@zoom-image/react'
+import { useEffect, useRef } from 'react'
+
+function ProductImage() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const zoomTargetRef = useRef<HTMLDivElement>(null)
+  const { createZoomImage, zoomImageState } = useZoomImageHover()
+
+  useEffect(() => {
+    if (containerRef.current && zoomTargetRef.current) {
+      createZoomImage(containerRef.current, {
+        zoomImageSource: '/product-image-large.jpg',
+        customZoom: { width: 400, height: 600 },
+        zoomTarget: zoomTargetRef.current,
+        scale: 2,
+      })
+    }
+  }, [])
+
+  return (
+    <div className="flex gap-8">
+      <div 
+        ref={containerRef} 
+        className="relative h-[300px] w-[200px]"
+      >
+        <img 
+          className="h-full w-full" 
+          alt="Product thumbnail" 
+          src="/product-image-small.jpg" 
+        />
+      </div>
+      
+      <div ref={zoomTargetRef} className="border border-gray-300" />
+    </div>
+  )
+}
+```
+
+## Custom Lens Styling
+
+You can customize the appearance of the hover lens using the `zoomLensClass` option:
+
+```tsx
+useEffect(() => {
+  if (containerRef.current && zoomTargetRef.current) {
+    createZoomImage(containerRef.current, {
+      zoomImageSource: '/image-large.jpg',
+      customZoom: { width: 400, height: 600 },
+      zoomTarget: zoomTargetRef.current,
+      scale: 2,
+      zoomLensClass: 'border-2 border-blue-500 bg-blue-100/20',
+    })
+  }
+}, [])
+```
+
+## Cleanup
+
+The hook automatically cleans up event listeners, DOM elements, and subscriptions when the component unmounts. Manual cleanup is not required.
+
+## See Also
+
+- [createZoomImageHover](/api/create-zoom-image-hover) - Core API documentation
+- [useZoomImageWheel](/api/react/use-zoom-image-wheel) - Wheel-based zoom hook
+- [useZoomImageMove](/api/react/use-zoom-image-move) - Move-based zoom hook

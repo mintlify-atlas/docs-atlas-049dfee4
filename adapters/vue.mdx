@@ -1,0 +1,294 @@
+---
+title: Vue
+description: Vue composables for implementing zoom image functionality in your Vue 3 applications
+---
+
+The Vue adapter provides composables that wrap the core zoom-image functionality for seamless integration with Vue 3 applications.
+
+## Installation
+
+```bash
+npm install @zoom-image/vue
+```
+
+## Available Composables
+
+The Vue adapter exports four composables, one for each zoom mode:
+
+- `useZoomImageWheel` - Zoom with mouse wheel/pinch gestures
+- `useZoomImageHover` - Zoom on hover with a separate zoom target
+- `useZoomImageMove` - Zoom follows mouse/touch movement
+- `useZoomImageClick` - Toggle zoom on click
+
+## Composable Return Values
+
+Each composable returns an object with:
+
+- `createZoomImage` - Function to initialize zoom on a container element
+- `zoomImageState` - Reactive state object (varies by zoom mode)
+- `setZoomImageState` - Function to update state (available for wheel and hover modes)
+
+## Wheel Zoom
+
+Zoom in and out using the mouse wheel or pinch gestures. Supports programmatic zoom control, rotation, and image cropping.
+
+### Basic Example
+
+```vue
+<script setup lang="ts">
+import { useZoomImageWheel } from "@zoom-image/vue"
+import { onMounted, ref } from "vue"
+
+const containerRef = ref<HTMLDivElement>()
+const { createZoomImage, zoomImageState } = useZoomImageWheel()
+
+onMounted(() => {
+  if (containerRef.value) {
+    createZoomImage(containerRef.value)
+  }
+})
+</script>
+
+<template>
+  <div>
+    <p>Current zoom: {{ Math.round(zoomImageState.currentZoom * 100) }}%</p>
+    <div ref="containerRef" class="h-[300px] w-[200px]">
+      <img class="h-full w-full" src="/image.jpg" alt="Zoomable" />
+    </div>
+  </div>
+</template>
+```
+
+### Complete Example with Controls
+
+```vue
+<script setup lang="ts">
+import { useZoomImageWheel } from "@zoom-image/vue"
+import { cropImage } from "@zoom-image/core"
+import { onMounted, ref } from "vue"
+
+const containerRef = ref<HTMLDivElement>()
+const croppedImage = ref<string>()
+
+const {
+  createZoomImage,
+  zoomImageState,
+  setZoomImageState,
+} = useZoomImageWheel()
+
+onMounted(() => {
+  if (containerRef.value) {
+    createZoomImage(containerRef.value)
+  }
+})
+
+const zoomIn = () => {
+  setZoomImageState({
+    currentZoom: zoomImageState.currentZoom + 0.5,
+  })
+}
+
+const zoomOut = () => {
+  setZoomImageState({
+    currentZoom: zoomImageState.currentZoom - 0.5,
+  })
+}
+
+const rotate = () => {
+  setZoomImageState({
+    currentRotation: zoomImageState.currentRotation + 90,
+  })
+}
+
+const handleCrop = async () => {
+  croppedImage.value = await cropImage({
+    currentZoom: zoomImageState.currentZoom,
+    image: containerRef.value?.querySelector('img') as HTMLImageElement,
+    positionX: zoomImageState.currentPositionX,
+    positionY: zoomImageState.currentPositionY,
+    rotation: zoomImageState.currentRotation,
+  })
+}
+</script>
+
+<template>
+  <div>
+    <div class="flex gap-4">
+      <div ref="containerRef" class="h-[300px] w-[200px]">
+        <img class="h-full w-full" src="/image.jpg" alt="Zoomable" />
+      </div>
+      <img v-if="croppedImage" :src="croppedImage" alt="Cropped" class="h-[300px] w-[200px]" />
+    </div>
+    
+    <div class="flex gap-2 mt-4">
+      <button @click="zoomIn">Zoom In</button>
+      <button @click="zoomOut">Zoom Out</button>
+      <button @click="rotate">Rotate</button>
+      <button @click="handleCrop">Crop Image</button>
+    </div>
+  </div>
+</template>
+```
+
+### State Properties
+
+- `currentZoom: number` - Current zoom level (1 = 100%)
+- `enable: boolean` - Whether zoom is enabled
+- `currentPositionX: number` - X position offset
+- `currentPositionY: number` - Y position offset
+- `currentRotation: number` - Rotation angle in degrees
+
+## Hover Zoom
+
+Display a zoomed version in a separate container when hovering over the image.
+
+### Basic Example
+
+```vue
+<script setup lang="ts">
+import { useZoomImageHover } from "@zoom-image/vue"
+import { onMounted, ref } from "vue"
+
+const containerRef = ref<HTMLDivElement>()
+const zoomTargetRef = ref<HTMLDivElement>()
+const { createZoomImage } = useZoomImageHover()
+
+onMounted(() => {
+  if (containerRef.value && zoomTargetRef.value) {
+    createZoomImage(containerRef.value, {
+      zoomImageSource: "/image-large.jpg",
+      customZoom: { width: 300, height: 500 },
+      zoomTarget: zoomTargetRef.value,
+      scale: 2,
+    })
+  }
+})
+</script>
+
+<template>
+  <div class="relative flex">
+    <div ref="containerRef" class="h-[300px] w-[200px]">
+      <img class="h-full w-full" src="/image.jpg" alt="Hover to zoom" />
+    </div>
+    <div ref="zoomTargetRef" class="absolute left-[350px]" />
+  </div>
+</template>
+```
+
+### State Properties
+
+- `enabled: boolean` - Whether hover is active
+- `zoomedImgStatus: string` - Loading status ("idle" | "loading" | "loaded")
+
+## Move Zoom
+
+Zoom follows the mouse or touch movement within the image container.
+
+### Basic Example
+
+```vue
+<script setup lang="ts">
+import { useZoomImageMove } from "@zoom-image/vue"
+import { onMounted, ref } from "vue"
+
+const containerRef = ref<HTMLDivElement>()
+const { createZoomImage } = useZoomImageMove()
+
+onMounted(() => {
+  if (containerRef.value) {
+    createZoomImage(containerRef.value, {
+      zoomImageSource: "/image-large.jpg",
+    })
+  }
+})
+</script>
+
+<template>
+  <div 
+    ref="containerRef" 
+    class="relative h-[300px] w-[200px] overflow-hidden cursor-crosshair"
+  >
+    <img class="h-full w-full" src="/image.jpg" alt="Move to zoom" />
+  </div>
+</template>
+```
+
+### State Properties
+
+- `zoomedImgStatus: string` - Loading status ("idle" | "loading" | "loaded")
+
+## Click Zoom
+
+Toggle between zoomed and normal states by clicking the image.
+
+### Basic Example
+
+```vue
+<script setup lang="ts">
+import { useZoomImageClick } from "@zoom-image/vue"
+import { onMounted, ref } from "vue"
+
+const containerRef = ref<HTMLDivElement>()
+const { createZoomImage } = useZoomImageClick()
+
+onMounted(() => {
+  if (containerRef.value) {
+    createZoomImage(containerRef.value, {
+      zoomImageSource: "/image-large.jpg",
+    })
+  }
+})
+</script>
+
+<template>
+  <div 
+    ref="containerRef" 
+    class="relative h-[300px] w-[200px] overflow-hidden cursor-crosshair"
+  >
+    <img class="h-full w-full" src="/image.jpg" alt="Click to zoom" />
+  </div>
+</template>
+```
+
+### State Properties
+
+- `zoomedImgStatus: string` - Loading status ("idle" | "loading" | "loaded")
+
+## TypeScript Support
+
+All composables are fully typed. Import types from `@zoom-image/core`:
+
+```typescript
+import type { 
+  ZoomImageWheelState,
+  ZoomImageHoverState,
+  ZoomImageMoveState,
+  ZoomImageClickState 
+} from "@zoom-image/core"
+```
+
+## Reactive State
+
+The `zoomImageState` returned by each composable is a reactive object created with Vue's `reactive()`. You can use it directly in templates and watch it for changes:
+
+```vue
+<script setup lang="ts">
+import { useZoomImageWheel } from "@zoom-image/vue"
+import { watch } from "vue"
+
+const { zoomImageState } = useZoomImageWheel()
+
+watch(() => zoomImageState.currentZoom, (newZoom) => {
+  console.log('Zoom changed:', newZoom)
+})
+</script>
+```
+
+## Cleanup
+
+All composables automatically clean up on component unmount using Vue's `onUnmounted` lifecycle hook.
+
+## Live Examples
+
+See the Vue adapter in action:
+- [Vue Example](https://github.com/willnguyen1312/zoom-image/tree/main/examples/with-vue)

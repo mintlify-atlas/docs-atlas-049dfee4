@@ -1,0 +1,263 @@
+---
+title: "createZoomImageMove"
+description: "Create a zoom effect that follows the cursor or pointer movement, displaying a magnified view directly on the image"
+---
+
+## Overview
+
+`createZoomImageMove` creates a zoom effect where the magnified image follows the cursor or touch pointer. The zoomed image is rendered as an overlay on the original image, creating a magnifying glass effect.
+
+## Function Signature
+
+```typescript
+function createZoomImageMove(
+  container: HTMLElement,
+  options?: ZoomImageMoveOptions
+): {
+  cleanup: () => void
+  subscribe: (listener: Listener) => () => void
+  getState: () => ZoomImageMoveState
+}
+```
+
+## Parameters
+
+<ParamField path="container" type="HTMLElement" required>
+  The HTML element that contains the image to be zoomed. The function will automatically find the first `<img>` element inside this container.
+</ParamField>
+
+<ParamField path="options" type="ZoomImageMoveOptions">
+  Configuration options for the move zoom behavior.
+
+  <ParamField path="options.zoomFactor" type="number" default="4">
+    The magnification factor for the zoomed image. A value of 4 means the image will be displayed at 4x its original size.
+  </ParamField>
+
+  <ParamField path="options.zoomImageSource" type="string">
+    The URL of a higher-resolution image to display in the zoom view. Defaults to the source image's `src` attribute.
+  </ParamField>
+
+  <ParamField path="options.disabledContextMenu" type="boolean" default="false">
+    If `true`, disables the right-click context menu on the zoomed image. Useful for protecting image content on mobile devices.
+  </ParamField>
+
+  <ParamField path="options.disableScrollLock" type="boolean" default="false" deprecated>
+    Deprecated. Previously controlled scroll locking behavior.
+  </ParamField>
+
+  <ParamField path="options.zoomImageProps" type="object">
+    Additional properties for the zoomed image element.
+
+    <ParamField path="options.zoomImageProps.alt" type="string">
+      Alt text for the zoomed image element.
+    </ParamField>
+
+    <ParamField path="options.zoomImageProps.className" type="string">
+      CSS class names to apply to the zoomed image element.
+    </ParamField>
+  </ParamField>
+</ParamField>
+
+## Return Value
+
+Returns an object with the following methods:
+
+<ResponseField name="cleanup" type="() => void">
+  Removes all event listeners and the zoomed image element. Call this when the component unmounts or when zoom functionality is no longer needed.
+</ResponseField>
+
+<ResponseField name="subscribe" type="(listener: Listener) => () => void">
+  Subscribe to state changes. The listener is called when the zoomed image loading status changes. Returns an unsubscribe function.
+
+  ```typescript
+  type Listener = (state: ZoomImageMoveState) => void
+  ```
+</ResponseField>
+
+<ResponseField name="getState" type="() => ZoomImageMoveState">
+  Get the current state including the zoomed image loading status.
+</ResponseField>
+
+## State Types
+
+### ZoomImageMoveState
+
+```typescript
+type ZoomImageMoveState = {
+  zoomedImgStatus: ZoomedImgStatus  // "idle" | "loading" | "loaded" | "error"
+}
+```
+
+### ZoomedImgStatus
+
+```typescript
+type ZoomedImgStatus = "idle" | "loading" | "loaded" | "error"
+```
+
+## Usage Examples
+
+### Basic Usage
+
+```typescript
+import { createZoomImageMove } from '@zoom-image/core'
+
+const container = document.getElementById('image-container')
+const { cleanup } = createZoomImageMove(container)
+
+// Call cleanup when done
+cleanup()
+```
+
+### With Custom Options
+
+```typescript
+const { cleanup } = createZoomImageMove(container, {
+  zoomFactor: 3,
+  zoomImageSource: '/images/product-large.jpg'
+})
+```
+
+### With High-Resolution Image
+
+```typescript
+const { cleanup } = createZoomImageMove(container, {
+  zoomFactor: 5,
+  zoomImageSource: '/images/high-resolution.jpg',
+  zoomImageProps: {
+    alt: 'High resolution product image',
+    className: 'zoomed-product'
+  }
+})
+```
+
+### Disable Context Menu
+
+```typescript
+// Prevent right-click and long-press on mobile
+const { cleanup } = createZoomImageMove(container, {
+  zoomFactor: 4,
+  disabledContextMenu: true
+})
+```
+
+### Subscribe to Loading State
+
+```typescript
+const { cleanup, subscribe, getState } = createZoomImageMove(container, {
+  zoomImageSource: '/images/large.jpg'
+})
+
+const unsubscribe = subscribe((state) => {
+  switch (state.zoomedImgStatus) {
+    case 'idle':
+      console.log('Zoom not activated yet')
+      break
+    case 'loading':
+      console.log('Loading zoomed image...')
+      break
+    case 'loaded':
+      console.log('Zoomed image ready')
+      break
+    case 'error':
+      console.error('Failed to load zoomed image')
+      break
+  }
+})
+
+// Check current state
+const currentState = getState()
+console.log('Current status:', currentState.zoomedImgStatus)
+
+// Cleanup
+unsubscribe()
+cleanup()
+```
+
+### With Custom Styling
+
+```css
+.zoomed-product {
+  border: 3px solid #007bff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+}
+```
+
+```typescript
+const { cleanup } = createZoomImageMove(container, {
+  zoomFactor: 4,
+  zoomImageProps: {
+    className: 'zoomed-product'
+  }
+})
+```
+
+### Product Gallery Implementation
+
+```html
+<div id="product-container" style="position: relative; width: 500px; height: 500px; overflow: hidden;">
+  <img src="product.jpg" alt="Product" style="width: 100%; height: 100%; object-fit: cover;" />
+</div>
+```
+
+```typescript
+const container = document.getElementById('product-container')
+
+const { cleanup } = createZoomImageMove(container, {
+  zoomFactor: 3.5,
+  zoomImageSource: 'product-hd.jpg',
+  disabledContextMenu: true,
+  zoomImageProps: {
+    alt: 'Product close-up view'
+  }
+})
+
+// Later, when navigating away
+cleanup()
+```
+
+### With Loading Indicator
+
+```typescript
+const loadingEl = document.getElementById('loading-indicator')
+
+const { cleanup, subscribe } = createZoomImageMove(container, {
+  zoomImageSource: '/images/high-res.jpg'
+})
+
+const unsubscribe = subscribe((state) => {
+  if (state.zoomedImgStatus === 'loading') {
+    loadingEl.style.display = 'block'
+  } else {
+    loadingEl.style.display = 'none'
+  }
+})
+```
+
+## Features
+
+- **Follow cursor**: Zoomed view follows mouse or touch pointer movement
+- **In-place zoom**: Magnified image overlays the original image
+- **Lazy loading**: High-resolution image loads only when user enters the image area
+- **Loading states**: Track image loading progress
+- **Context menu control**: Optionally disable right-click and long-press
+- **Auto-cleanup**: Properly removes all elements and event listeners
+- **Touch support**: Works with mouse, touch, and pen inputs
+- **Scroll lock**: Automatically disables page scrolling on touch devices during zoom
+
+## Behavior
+
+- Zoom activates when the pointer enters the container
+- The zoomed image follows the pointer position
+- Zoom boundaries are automatically calculated to keep the image within view
+- Only one active pointer is tracked at a time (first pointer wins)
+- Scroll is disabled on touch devices while zooming
+- Scroll is re-enabled when pointer leaves or on touch end
+
+## Related Types
+
+- [ZoomImageMoveOptions](/api/types/zoom-image-move-options) - Options type for move zoom
+
+## Source Reference
+
+Implementation: `/packages/core/src/createZoomImageMove.ts:22`

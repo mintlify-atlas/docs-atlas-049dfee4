@@ -1,0 +1,274 @@
+---
+title: Installation
+description: Install Zoom Image using your preferred package manager or CDN
+---
+
+# Installation
+
+Zoom Image can be installed via npm, yarn, or pnpm. You can also use it directly from a CDN for quick prototyping.
+
+## Package Manager Installation
+
+<Tip>
+  Choose your preferred package manager below. All examples use the same API.
+</Tip>
+
+### Core Library
+
+The core library provides vanilla JavaScript functions that work in any environment:
+
+<CodeGroup>
+
+```bash npm
+npm install @zoom-image/core
+```
+
+```bash yarn
+yarn add @zoom-image/core
+```
+
+```bash pnpm
+pnpm add @zoom-image/core
+```
+
+</CodeGroup>
+
+### Framework Adapters
+
+For framework-specific integrations, install the appropriate adapter along with the core library:
+
+<Tabs>
+  <Tab title="React">
+    <CodeGroup>
+    ```bash npm
+    npm install @zoom-image/core @zoom-image/react
+    ```
+
+    ```bash yarn
+    yarn add @zoom-image/core @zoom-image/react
+    ```
+
+    ```bash pnpm
+    pnpm add @zoom-image/core @zoom-image/react
+    ```
+    </CodeGroup>
+
+    <Info>
+      React adapter requires React 18.0.0 or higher.
+    </Info>
+  </Tab>
+
+  <Tab title="Vue">
+    <CodeGroup>
+    ```bash npm
+    npm install @zoom-image/core @zoom-image/vue
+    ```
+
+    ```bash yarn
+    yarn add @zoom-image/core @zoom-image/vue
+    ```
+
+    ```bash pnpm
+    pnpm add @zoom-image/core @zoom-image/vue
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Svelte">
+    <CodeGroup>
+    ```bash npm
+    npm install @zoom-image/core @zoom-image/svelte
+    ```
+
+    ```bash yarn
+    yarn add @zoom-image/core @zoom-image/svelte
+    ```
+
+    ```bash pnpm
+    pnpm add @zoom-image/core @zoom-image/svelte
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Angular">
+    <CodeGroup>
+    ```bash npm
+    npm install @zoom-image/core @zoom-image/angular
+    ```
+
+    ```bash yarn
+    yarn add @zoom-image/core @zoom-image/angular
+    ```
+
+    ```bash pnpm
+    pnpm add @zoom-image/core @zoom-image/angular
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Solid">
+    <CodeGroup>
+    ```bash npm
+    npm install @zoom-image/core @zoom-image/solid
+    ```
+
+    ```bash yarn
+    yarn add @zoom-image/core @zoom-image/solid
+    ```
+
+    ```bash pnpm
+    pnpm add @zoom-image/core @zoom-image/solid
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Qwik">
+    <CodeGroup>
+    ```bash npm
+    npm install @zoom-image/core @zoom-image/qwik
+    ```
+
+    ```bash yarn
+    yarn add @zoom-image/core @zoom-image/qwik
+    ```
+
+    ```bash pnpm
+    pnpm add @zoom-image/core @zoom-image/qwik
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Preact">
+    <CodeGroup>
+    ```bash npm
+    npm install @zoom-image/core @zoom-image/preact
+    ```
+
+    ```bash yarn
+    yarn add @zoom-image/core @zoom-image/preact
+    ```
+
+    ```bash pnpm
+    pnpm add @zoom-image/core @zoom-image/preact
+    ```
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+## CDN Usage
+
+For quick prototyping or simple projects, you can load Zoom Image directly from a CDN:
+
+### unpkg
+
+```html
+<script src="https://unpkg.com/@zoom-image/core@latest/dist/index.global.js"></script>
+```
+
+### jsDelivr
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@zoom-image/core@latest/dist/index.global.js"></script>
+```
+
+### CDN Example
+
+Here's a complete example using the CDN:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zoom Image CDN Example</title>
+  <style>
+    .zoom-container {
+      width: 400px;
+      height: 400px;
+      cursor: crosshair;
+      overflow: hidden;
+    }
+    .zoom-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+  <div id="zoom-container" class="zoom-container">
+    <img src="your-image.jpg" alt="Zoomable image">
+  </div>
+
+  <script src="https://unpkg.com/@zoom-image/core@latest/dist/index.global.js"></script>
+  <script>
+    const container = document.getElementById('zoom-container');
+    const zoomImage = ZoomImage.createZoomImageWheel(container, {
+      maxZoom: 4,
+      wheelZoomRatio: 0.1
+    });
+  </script>
+</body>
+</html>
+```
+
+<Note>
+  When using the CDN, all exports are available under the global `ZoomImage` namespace.
+</Note>
+
+## Version Pinning
+
+For production applications, it's recommended to pin to a specific version:
+
+<CodeGroup>
+
+```bash npm
+npm install @zoom-image/core@0.42.0
+```
+
+```html unpkg
+<script src="https://unpkg.com/@zoom-image/core@0.42.0/dist/index.global.js"></script>
+```
+
+```html jsDelivr
+<script src="https://cdn.jsdelivr.net/npm/@zoom-image/core@0.42.0/dist/index.global.js"></script>
+```
+
+</CodeGroup>
+
+## TypeScript Support
+
+Zoom Image is written in TypeScript and includes type definitions out of the box. No additional `@types` packages are needed:
+
+```typescript
+import { createZoomImageWheel, type ZoomImageWheelOptions } from '@zoom-image/core';
+
+const options: ZoomImageWheelOptions = {
+  maxZoom: 4,
+  wheelZoomRatio: 0.1
+};
+
+const container = document.getElementById('zoom-container') as HTMLElement;
+const zoomImage = createZoomImageWheel(container, options);
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Build your first zoom implementation
+  </Card>
+  <Card title="Core API Reference" icon="book" href="/api/create-zoom-image-wheel">
+    Explore all available options
+  </Card>
+  <Card title="Examples" icon="images" href="/examples/overview">
+    See real-world implementations
+  </Card>
+  <Card title="React Guide" icon="react" href="/adapters/react">
+    Learn about the React adapter
+  </Card>
+  <Card title="Examples" icon="images" href="/examples">
+    See real-world implementations
+  </Card>
+</CardGroup>

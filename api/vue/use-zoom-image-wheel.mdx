@@ -1,0 +1,310 @@
+---
+title: useZoomImageWheel
+description: Vue composable for wheel-based image zooming with pinch-to-zoom support
+---
+
+## Overview
+
+The `useZoomImageWheel` composable provides wheel-based image zoom functionality with support for mouse wheel, pinch-to-zoom gestures, and programmatic zoom controls. It enables users to zoom and pan images using scroll/wheel events and touch gestures.
+
+## Signature
+
+```typescript
+function useZoomImageWheel(): {
+  createZoomImage: (
+    container: HTMLElement,
+    options?: ZoomImageWheelOptions
+  ) => void
+  zoomImageState: ZoomImageWheelState
+  setZoomImageState: (state: ZoomImageWheelStateUpdate) => void
+}
+```
+
+## Return Value
+
+<ResponseField name="createZoomImage" type="function" required>
+  Initializes the zoom functionality on the specified container element.
+  
+  <ParamField name="container" type="HTMLElement" required>
+    The container element that wraps the image to be zoomed
+  </ParamField>
+  
+  <ParamField name="options" type="ZoomImageWheelOptions">
+    Configuration options for the wheel zoom behavior
+    
+    <ParamField name="maxZoom" type="number" default="4">
+      Maximum zoom level allowed
+    </ParamField>
+    
+    <ParamField name="wheelZoomRatio" type="number" default="0.1">
+      The zoom sensitivity for wheel events. Higher values mean faster zooming
+    </ParamField>
+    
+    <ParamField name="dblTapAnimationDuration" type="number" default="300">
+      Duration in milliseconds for double-tap zoom animation
+    </ParamField>
+    
+    <ParamField name="initialState" type="Partial<ZoomImageWheelStateUpdate>">
+      Initial state values for zoom, rotation, and position
+    </ParamField>
+    
+    <ParamField name="shouldZoomOnSingleTouch" type="() => boolean">
+      Function that determines if single touch should trigger zoom. Returns `true` by default
+    </ParamField>
+    
+    <ParamField name="zoomTarget" type="HTMLElement | null">
+      The element to apply zoom transformations to. Defaults to the first `img` element in the container
+    </ParamField>
+  </ParamField>
+</ResponseField>
+
+<ResponseField name="zoomImageState" type="ZoomImageWheelState" required>
+  Reactive state object containing current zoom properties
+  
+  <ResponseField name="currentZoom" type="number">
+    Current zoom level (1 = 100%, 2 = 200%, etc.)
+  </ResponseField>
+  
+  <ResponseField name="enable" type="boolean">
+    Whether zoom functionality is enabled
+  </ResponseField>
+  
+  <ResponseField name="currentPositionX" type="number">
+    Current X-axis position of the zoomed image in pixels
+  </ResponseField>
+  
+  <ResponseField name="currentPositionY" type="number">
+    Current Y-axis position of the zoomed image in pixels
+  </ResponseField>
+  
+  <ResponseField name="currentRotation" type="number">
+    Current rotation angle in degrees
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="setZoomImageState" type="function" required>
+  Updates the zoom state programmatically
+  
+  <ParamField name="state" type="ZoomImageWheelStateUpdate" required>
+    Partial state update object
+    
+    <ParamField name="enable" type="boolean">
+      Enable or disable zoom functionality
+    </ParamField>
+    
+    <ParamField name="currentZoom" type="number">
+      Set the zoom level
+    </ParamField>
+    
+    <ParamField name="currentRotation" type="number">
+      Set the rotation angle in degrees
+    </ParamField>
+    
+    <ParamField name="zoomTarget" type="HTMLElement | null">
+      Update the zoom target element
+    </ParamField>
+  </ParamField>
+</ResponseField>
+
+## Examples
+
+### Basic Usage
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useZoomImageWheel } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const { createZoomImage, zoomImageState } = useZoomImageWheel()
+
+onMounted(() => {
+  if (imageContainerRef.value) {
+    createZoomImage(imageContainerRef.value)
+  }
+})
+</script>
+
+<template>
+  <div>
+    <p>Current zoom: {{ Math.round(zoomImageState.currentZoom * 100) }}%</p>
+    <div ref="imageContainerRef" class="h-[300px] w-[200px] cursor-crosshair">
+      <img src="/sample.jpg" alt="Zoomable image" class="h-full w-full" />
+    </div>
+  </div>
+</template>
+```
+
+### With Custom Options
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useZoomImageWheel } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const { createZoomImage, zoomImageState } = useZoomImageWheel()
+
+onMounted(() => {
+  if (imageContainerRef.value) {
+    createZoomImage(imageContainerRef.value, {
+      maxZoom: 6,
+      wheelZoomRatio: 0.2,
+      initialState: {
+        currentZoom: 1.5,
+        currentRotation: 0
+      }
+    })
+  }
+})
+</script>
+
+<template>
+  <div ref="imageContainerRef" class="h-[300px] w-[200px]">
+    <img src="/sample.jpg" alt="Zoomable image" class="h-full w-full" />
+  </div>
+</template>
+```
+
+### Programmatic Controls
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useZoomImageWheel } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const { 
+  createZoomImage, 
+  zoomImageState, 
+  setZoomImageState 
+} = useZoomImageWheel()
+
+const zoomIn = () => {
+  setZoomImageState({
+    currentZoom: zoomImageState.currentZoom + 0.5
+  })
+}
+
+const zoomOut = () => {
+  setZoomImageState({
+    currentZoom: zoomImageState.currentZoom - 0.5
+  })
+}
+
+const rotate = () => {
+  setZoomImageState({
+    currentRotation: zoomImageState.currentRotation + 90
+  })
+}
+
+onMounted(() => {
+  if (imageContainerRef.value) {
+    createZoomImage(imageContainerRef.value)
+  }
+})
+</script>
+
+<template>
+  <div>
+    <div class="flex space-x-2 mb-4">
+      <button @click="zoomIn" class="px-4 py-2 bg-gray-100 rounded">
+        Zoom In
+      </button>
+      <button @click="zoomOut" class="px-4 py-2 bg-gray-100 rounded">
+        Zoom Out
+      </button>
+      <button @click="rotate" class="px-4 py-2 bg-gray-100 rounded">
+        Rotate 90°
+      </button>
+    </div>
+    
+    <div ref="imageContainerRef" class="h-[300px] w-[200px] cursor-crosshair">
+      <img src="/sample.jpg" alt="Zoomable image" class="h-full w-full" />
+    </div>
+  </div>
+</template>
+```
+
+### With Image Cropping
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useZoomImageWheel } from '@zoom-image/vue'
+import { cropImage } from '@zoom-image/core'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const croppedImage = ref<string>()
+const { createZoomImage, zoomImageState } = useZoomImageWheel()
+
+const handleCrop = async () => {
+  if (!imageContainerRef.value) return
+  
+  croppedImage.value = await cropImage({
+    currentZoom: zoomImageState.currentZoom,
+    image: imageContainerRef.value.querySelector('img') as HTMLImageElement,
+    positionX: zoomImageState.currentPositionX,
+    positionY: zoomImageState.currentPositionY,
+    rotation: zoomImageState.currentRotation
+  })
+}
+
+onMounted(() => {
+  if (imageContainerRef.value) {
+    createZoomImage(imageContainerRef.value)
+  }
+})
+</script>
+
+<template>
+  <div>
+    <div class="flex items-center gap-4">
+      <div ref="imageContainerRef" class="h-[300px] w-[200px] cursor-crosshair">
+        <img src="/sample.jpg" alt="Zoomable image" class="h-full w-full" />
+      </div>
+      
+      <img 
+        v-if="croppedImage" 
+        :src="croppedImage" 
+        alt="Cropped result" 
+        class="h-[300px] w-[200px]"
+      />
+    </div>
+    
+    <button @click="handleCrop" class="mt-4 px-4 py-2 bg-gray-100 rounded">
+      Crop Image
+    </button>
+  </div>
+</template>
+```
+
+## Cleanup
+
+The composable automatically cleans up event listeners and resources when the component is unmounted using Vue's `onUnmounted` hook. If you need to reinitialize the zoom on the same container, simply call `createZoomImage` again - it will automatically clean up the previous instance.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useZoomImageWheel } from '@zoom-image/vue'
+
+const imageContainerRef = ref<HTMLDivElement>()
+const { createZoomImage } = useZoomImageWheel()
+
+const reinitialize = () => {
+  if (imageContainerRef.value) {
+    // Previous instance is automatically cleaned up
+    createZoomImage(imageContainerRef.value, {
+      maxZoom: 8
+    })
+  }
+}
+</script>
+```
+
+## See Also
+
+- [createZoomImageWheel](/api/create-zoom-image-wheel) - Core API documentation
+- [useZoomImageHover](/api/vue/use-zoom-image-hover) - Hover-based zoom composable
+- [useZoomImageMove](/api/vue/use-zoom-image-move) - Move-based zoom composable
+- [cropImage](/api/crop-image) - Image cropping utility

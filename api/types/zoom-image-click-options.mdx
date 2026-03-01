@@ -1,0 +1,239 @@
+---
+title: 'ZoomImageClickOptions'
+description: 'Configuration options for the createZoomImageClick function'
+---
+
+The `ZoomImageClickOptions` type defines the configuration options for creating a click-based zoom interface where users click to activate zoom and move their cursor to pan the zoomed image.
+
+## Type Definition
+
+```typescript
+type ZoomImageClickOptions = {
+  zoomFactor?: number
+  zoomImageSource?: string
+  disableScrollLock?: boolean
+  zoomImageProps?: {
+    alt?: string
+  }
+}
+```
+
+## Properties
+
+<ParamField path="zoomFactor" type="number" default="4">
+  The magnification level for the zoomed image. This determines how much larger the image appears when zoomed.
+  
+  **Example:**
+  ```typescript
+  zoomFactor: 3 // Show image at 3x magnification
+  ```
+</ParamField>
+
+<ParamField path="zoomImageSource" type="string">
+  URL of a higher resolution image to use for the zoomed view. If not provided, uses the source image's `src` attribute.
+  
+  This allows you to display a smaller preview image for performance while showing a high-resolution version when zoomed.
+  
+  **Example:**
+  ```typescript
+  zoomImageSource: '/images/product-high-resolution.jpg'
+  ```
+</ParamField>
+
+<ParamField path="disableScrollLock" type="boolean" default="false">
+  Whether to disable automatic scroll locking when the container is active. By default, scroll is locked on `pointerenter` and unlocked on `pointerleave` to prevent accidental page scrolling during zoom interaction.
+  
+  Set to `true` to allow normal page scrolling even when the cursor is over the zoom container.
+  
+  **Example:**
+  ```typescript
+  disableScrollLock: true // Allow page scrolling during zoom
+  ```
+</ParamField>
+
+<ParamField path="zoomImageProps" type="object">
+  Additional HTML attributes to apply to the zoomed image element.
+  
+  **Properties:**
+  - `alt?: string` - Alternative text for the zoomed image (for accessibility)
+  
+  **Example:**
+  ```typescript
+  zoomImageProps: {
+    alt: 'Magnified view of product detail'
+  }
+  ```
+</ParamField>
+
+## Related Types
+
+### ZoomImageClickState
+
+The internal state managed by the click zoom component:
+
+```typescript
+type ZoomImageClickState = {
+  zoomedImgStatus: ZoomedImgStatus  // 'idle' | 'loading' | 'loaded' | 'error'
+}
+```
+
+### ZoomedImgStatus
+
+```typescript
+type ZoomedImgStatus = 'idle' | 'loading' | 'loaded' | 'error'
+```
+
+Indicates the loading state of the zoomed image:
+- `idle` - Not yet started loading
+- `loading` - Image is currently loading
+- `loaded` - Image has loaded successfully
+- `error` - Image failed to load
+
+## Usage Example
+
+```typescript
+import { createZoomImageClick } from '@zoom-image/core'
+
+const container = document.querySelector('.image-container')
+
+const zoomInstance = createZoomImageClick(container, {
+  zoomFactor: 5,
+  zoomImageSource: '/images/product-4k.jpg',
+  disableScrollLock: false,
+  zoomImageProps: {
+    alt: 'Zoomed product image'
+  }
+})
+
+// Subscribe to state changes
+zoomInstance.subscribe((state) => {
+  console.log('Image status:', state.zoomedImgStatus)
+  
+  if (state.zoomedImgStatus === 'loaded') {
+    console.log('High-resolution image ready')
+  }
+})
+
+// Get current state
+const currentState = zoomInstance.getState()
+console.log('Current status:', currentState.zoomedImgStatus)
+
+// Clean up when done
+zoomInstance.cleanup()
+```
+
+## Interaction Flow
+
+### Click to Zoom
+
+1. **First click**: Activates zoom mode at the cursor position
+2. **Mouse move**: Pans the zoomed image while in zoom mode
+3. **Second click**: Deactivates zoom mode and returns to normal view
+
+### Visual Feedback
+
+The zoomed image:
+- Is positioned absolutely within the container
+- Starts hidden (`display: none`)
+- Becomes visible when zoom is activated
+- Follows cursor movement via CSS transforms
+
+### Boundary Constraints
+
+The zoomed image position is automatically constrained:
+- Cannot pan beyond image edges
+- Uses `calculatePositionX` and `calculatePositionY` to clamp values
+- Prevents showing empty space outside the image boundaries
+
+## Behavior Details
+
+### Scroll Lock
+
+When `disableScrollLock` is `false` (default):
+- Scroll is locked when pointer enters the container
+- Scroll is unlocked when pointer leaves the container
+- On `touchend` events, scroll is always re-enabled
+
+### Pointer Events
+
+The component responds to standard pointer events:
+- `pointerdown` - Toggles zoom on/off
+- `pointermove` - Pans the image when zoom is active
+- `pointerenter` - Locks scroll (if enabled)
+- `pointerleave` - Unlocks scroll (if enabled)
+
+## Common Use Cases
+
+### E-commerce Product Images
+
+```typescript
+const productZoom = createZoomImageClick(productContainer, {
+  zoomFactor: 4,
+  zoomImageSource: product.images.highRes,
+  zoomImageProps: {
+    alt: `Detailed view of ${product.name}`
+  }
+})
+```
+
+### Image Galleries
+
+```typescript
+galleryImages.forEach((img) => {
+  const zoom = createZoomImageClick(img.parentElement, {
+    zoomFactor: 3,
+    disableScrollLock: true, // Allow scrolling through gallery
+    zoomImageProps: {
+      alt: img.alt + ' (zoomed)'
+    }
+  })
+  
+  // Store instance for cleanup
+  zoomInstances.push(zoom)
+})
+```
+
+### Documentation or Tutorial Images
+
+```typescript
+const diagramZoom = createZoomImageClick(diagramContainer, {
+  zoomFactor: 6, // Higher zoom for reading small text
+  zoomImageSource: '/diagrams/architecture-full-res.png',
+  disableScrollLock: false,
+  zoomImageProps: {
+    alt: 'System architecture diagram (click to zoom)'
+  }
+})
+```
+
+### Mobile-Friendly Implementation
+
+```typescript
+const mobileZoom = createZoomImageClick(imageContainer, {
+  zoomFactor: 3,
+  disableScrollLock: false, // Important for mobile UX
+  zoomImageProps: {
+    alt: 'Product image (tap to zoom)'
+  }
+})
+
+// The component automatically handles touchend events
+// to re-enable scrolling after zoom interaction
+```
+
+## Comparison with Other Zoom Types
+
+| Feature | Click | Move | Hover | Wheel |
+|---------|-------|------|-------|-------|
+| Activation | Click | Pointer enter | Pointer enter | Wheel/Pinch |
+| Zoom location | In-place | In-place | Separate target | In-place |
+| Panning | Move cursor | Move cursor | Automatic | Drag |
+| Mobile-friendly | Yes | Yes | No | Yes |
+| Use case | Interactive images | Quick preview | Product details | Maps, diagrams |
+
+## See Also
+
+- [createZoomImageClick](/api/create-zoom-image-click) - Function that uses these options
+- [ZoomImageWheelOptions](/api/types/zoom-image-wheel-options) - Options for wheel-based zoom
+- [ZoomImageHoverOptions](/api/types/zoom-image-hover-options) - Options for hover-based zoom
+- [ZoomImageMoveOptions](/api/types/zoom-image-move-options) - Options for move-based zoom

@@ -1,0 +1,317 @@
+---
+title: Qwik
+description: Qwik hooks for implementing zoom image functionality in your Qwik applications
+---
+
+The Qwik adapter provides hooks that wrap the core zoom-image functionality for seamless integration with Qwik applications.
+
+## Installation
+
+```bash
+npm install @zoom-image/qwik
+```
+
+## Available Hooks
+
+The Qwik adapter exports four hooks, one for each zoom mode:
+
+- `useZoomImageWheel` - Zoom with mouse wheel/pinch gestures
+- `useZoomImageHover` - Zoom on hover with a separate zoom target
+- `useZoomImageMove` - Zoom follows mouse/touch movement
+- `useZoomImageClick` - Toggle zoom on click
+
+## Hook Return Values
+
+Each hook returns an object with:
+
+- `createZoomImage` - QRL function to initialize zoom on a container element
+- `zoomImageState` - Reactive state store (varies by zoom mode)
+- `setZoomImageState` - QRL function to update state (available for wheel and hover modes)
+
+## Wheel Zoom
+
+Zoom in and out using the mouse wheel or pinch gestures. Supports programmatic zoom control, rotation, and image cropping.
+
+### Basic Example
+
+```tsx
+import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik"
+import { useZoomImageWheel } from "@zoom-image/qwik"
+
+export default component$(() => {
+  const containerRef = useSignal<HTMLDivElement>()
+  const { createZoomImage, zoomImageState } = useZoomImageWheel()
+
+  useVisibleTask$(({ track }) => {
+    track(() => containerRef.value)
+    
+    if (containerRef.value) {
+      createZoomImage(containerRef.value)
+    }
+  })
+
+  return (
+    <div>
+      <p>Current zoom: {Math.round(zoomImageState.currentZoom * 100)}%</p>
+      <div ref={containerRef} class="h-[300px] w-[200px]">
+        <img class="h-full w-full" src="/image.jpg" alt="Zoomable" />
+      </div>
+    </div>
+  )
+})
+```
+
+### Complete Example with Controls
+
+```tsx
+import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik"
+import { useZoomImageWheel } from "@zoom-image/qwik"
+import { cropImage } from "@zoom-image/core"
+
+export default component$(() => {
+  const containerRef = useSignal<HTMLDivElement>()
+  const croppedImage = useSignal<string>("")
+  
+  const {
+    createZoomImage,
+    zoomImageState,
+    setZoomImageState,
+  } = useZoomImageWheel()
+
+  useVisibleTask$(({ track }) => {
+    track(() => containerRef.value)
+    
+    if (containerRef.value) {
+      createZoomImage(containerRef.value)
+    }
+  })
+
+  const handleCrop = $(async () => {
+    croppedImage.value = await cropImage({
+      currentZoom: zoomImageState.currentZoom,
+      image: containerRef.value?.querySelector('img') as HTMLImageElement,
+      positionX: zoomImageState.currentPositionX,
+      positionY: zoomImageState.currentPositionY,
+      rotation: zoomImageState.currentRotation,
+    })
+  })
+
+  return (
+    <div>
+      <div class="flex gap-4">
+        <div ref={containerRef} class="h-[300px] w-[200px]">
+          <img class="h-full w-full" src="/image.jpg" alt="Zoomable" />
+        </div>
+        {croppedImage.value && (
+          <img src={croppedImage.value} alt="Cropped" class="h-[300px] w-[200px]" />
+        )}
+      </div>
+      
+      <div class="flex gap-2 mt-4">
+        <button 
+          onClick$={() => {
+            setZoomImageState({
+              currentZoom: zoomImageState.currentZoom + 0.5,
+            })
+          }}
+        >
+          Zoom In
+        </button>
+        <button 
+          onClick$={() => {
+            setZoomImageState({
+              currentZoom: zoomImageState.currentZoom - 0.5,
+            })
+          }}
+        >
+          Zoom Out
+        </button>
+        <button 
+          onClick$={() => {
+            setZoomImageState({
+              currentRotation: zoomImageState.currentRotation + 90,
+            })
+          }}
+        >
+          Rotate
+        </button>
+        <button onClick$={handleCrop}>Crop Image</button>
+      </div>
+    </div>
+  )
+})
+```
+
+### State Properties
+
+- `currentZoom: number` - Current zoom level (1 = 100%)
+- `enable: boolean` - Whether zoom is enabled
+- `currentPositionX: number` - X position offset
+- `currentPositionY: number` - Y position offset
+- `currentRotation: number` - Rotation angle in degrees
+
+## Hover Zoom
+
+Display a zoomed version in a separate container when hovering over the image.
+
+### Basic Example
+
+```tsx
+import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik"
+import { useZoomImageHover } from "@zoom-image/qwik"
+
+export default component$(() => {
+  const containerRef = useSignal<HTMLDivElement>()
+  const zoomTargetRef = useSignal<HTMLDivElement>()
+  const { createZoomImage } = useZoomImageHover()
+
+  useVisibleTask$(({ track }) => {
+    track(() => containerRef.value)
+    track(() => zoomTargetRef.value)
+    
+    if (containerRef.value && zoomTargetRef.value) {
+      createZoomImage(containerRef.value, {
+        zoomImageSource: "/image-large.jpg",
+        customZoom: { width: 300, height: 500 },
+        zoomTarget: zoomTargetRef.value,
+        scale: 2,
+      })
+    }
+  })
+
+  return (
+    <div class="relative flex">
+      <div ref={containerRef} class="h-[300px] w-[200px]">
+        <img class="h-full w-full" src="/image.jpg" alt="Hover to zoom" />
+      </div>
+      <div ref={zoomTargetRef} class="absolute left-[350px]" />
+    </div>
+  )
+})
+```
+
+### State Properties
+
+- `enabled: boolean` - Whether hover is active
+- `zoomedImgStatus: string` - Loading status ("idle" | "loading" | "loaded")
+
+## Move Zoom
+
+Zoom follows the mouse or touch movement within the image container.
+
+### Basic Example
+
+```tsx
+import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik"
+import { useZoomImageMove } from "@zoom-image/qwik"
+
+export default component$(() => {
+  const containerRef = useSignal<HTMLDivElement>()
+  const { createZoomImage } = useZoomImageMove()
+
+  useVisibleTask$(({ track }) => {
+    track(() => containerRef.value)
+    
+    if (containerRef.value) {
+      createZoomImage(containerRef.value, {
+        zoomImageSource: "/image-large.jpg",
+      })
+    }
+  })
+
+  return (
+    <div 
+      ref={containerRef} 
+      class="relative h-[300px] w-[200px] overflow-hidden cursor-crosshair"
+    >
+      <img class="h-full w-full" src="/image.jpg" alt="Move to zoom" />
+    </div>
+  )
+})
+```
+
+### State Properties
+
+- `zoomedImgStatus: string` - Loading status ("idle" | "loading" | "loaded")
+
+## Click Zoom
+
+Toggle between zoomed and normal states by clicking the image.
+
+### Basic Example
+
+```tsx
+import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik"
+import { useZoomImageClick } from "@zoom-image/qwik"
+
+export default component$(() => {
+  const containerRef = useSignal<HTMLDivElement>()
+  const { createZoomImage } = useZoomImageClick()
+
+  useVisibleTask$(({ track }) => {
+    track(() => containerRef.value)
+    
+    if (containerRef.value) {
+      createZoomImage(containerRef.value, {
+        zoomImageSource: "/image-large.jpg",
+      })
+    }
+  })
+
+  return (
+    <div 
+      ref={containerRef} 
+      class="relative h-[300px] w-[200px] overflow-hidden cursor-crosshair"
+    >
+      <img class="h-full w-full" src="/image.jpg" alt="Click to zoom" />
+    </div>
+  )
+})
+```
+
+### State Properties
+
+- `zoomedImgStatus: string` - Loading status ("idle" | "loading" | "loaded")
+
+## TypeScript Support
+
+All hooks are fully typed. Import types from `@zoom-image/core`:
+
+```tsx
+import type { 
+  ZoomImageWheelState,
+  ZoomImageHoverState,
+  ZoomImageMoveState,
+  ZoomImageClickState 
+} from "@zoom-image/core"
+```
+
+## Qwik-Specific Features
+
+### QRL Functions
+
+The `createZoomImage` and `setZoomImageState` functions are wrapped with Qwik's `$()` optimizer, making them serializable for resumability.
+
+### useStore vs useSignal
+
+The adapter uses `useStore` for state management, which creates a reactive proxy object. You can access properties directly:
+
+```tsx
+const { zoomImageState } = useZoomImageWheel()
+
+// Access properties directly - Qwik tracks dependencies automatically
+return <p>Zoom: {zoomImageState.currentZoom}</p>
+```
+
+### Serialization
+
+The zoom instance is marked with `noSerialize()` to prevent serialization since it contains DOM references and event handlers that cannot be serialized.
+
+## Cleanup
+
+Cleanup is automatically handled using `useVisibleTask$` cleanup callback. The zoom instance is destroyed when the component is removed from the DOM.
+
+## Live Examples
+
+See the Qwik adapter in action:
+- [Qwik Example](https://github.com/willnguyen1312/zoom-image/tree/main/examples/with-qwik)
